@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Projects from './components/Projects'
 import DetectorExplorer from './components/DetectorExplorer'
 import Scanner from './components/Scanner'
-import TextScramble from './components/TextScramble'
+import MatrixText from './components/MatrixText'
 import CascadeText from './components/CascadeText'
 import MagneticButton from './components/MagneticButton'
 import { PROFILE } from './data'
@@ -58,12 +58,12 @@ export default function App() {
       <section id="top" className="mx-auto max-w-content px-6 md:px-8 pt-16 pb-16 border-b border-line">
         <p className="font-mono text-[12px] uppercase tracking-wider text-accent mb-5">{t('hero_role')}</p>
         <h1 className="font-disp font-bold leading-[0.98] tracking-[-0.03em] text-[clamp(40px,8vw,82px)] mb-6">
-          <TextScramble text={t('hero_l1')} delay={100} />
+          <MatrixText key={t('hero_l1')} text={t('hero_l1')} initialDelay={100} />
           <br />
           <span className="text-muted font-normal">
-            <TextScramble text={t('hero_build_pre')} delay={400} />
-            <TextScramble text={t('hero_build_em')} className="text-ink border-b-[3px] border-accent pb-0.5" delay={550} />
-            <TextScramble text={t('hero_build_post')} delay={700} />
+            <MatrixText key={t('hero_build_pre')} text={t('hero_build_pre')} initialDelay={620} />
+            <MatrixText key={t('hero_build_em')} text={t('hero_build_em')} className="text-ink border-b-[3px] border-accent pb-0.5" initialDelay={860} />
+            <MatrixText key={t('hero_build_post')} text={t('hero_build_post')} initialDelay={1080} />
           </span>
         </h1>
         <p className="text-[19px] text-muted max-w-2xl mb-8">{t('hero_intro')}</p>
