@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+
+* { -webkit-font-smoothing: antialiased; }
+
+body {
+  background: #FAFAF9;
+  color: #111111;
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+}
+
+::selection { background: #1D4ED8; color: #FAFAF9; }
+
+:focus-visible { outline: 2px solid #1D4ED8; outline-offset: 3px; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
