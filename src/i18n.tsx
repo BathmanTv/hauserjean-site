@@ -80,6 +80,16 @@ export const S: Dict = {
   sc_placeholder: { en: 'findings will appear here…', fr: 'les findings apparaîtront ici…' },
   sc_clean: { en: '✓ no issues detected by the demo ruleset', fr: '✓ aucun problème détecté par le ruleset démo' },
   sc_note: { en: 'Demo ruleset (5 patterns). The full engine covers 277 detectors across 24 ecosystems with AST analysis.', fr: 'Ruleset démo (5 patterns). Le moteur complet couvre 277 détecteurs sur 24 écosystèmes avec analyse AST.' },
+
+  proj_label: { en: 'lab — things I build', fr: 'lab — ce que je construis' },
+  proj_title: { en: "I've been building a lot of things", fr: 'Je construis beaucoup de choses' },
+  proj_view: { en: 'view project →', fr: 'voir le projet →' },
+  proj_back: { en: '← all projects', fr: '← tous les projets' },
+  pd_problem: { en: 'The problem', fr: 'Le problème' },
+  pd_build: { en: 'What I built', fr: "Ce que j'ai construit" },
+  pd_stack: { en: 'Stack', fr: 'Stack' },
+  pd_status: { en: 'Status', fr: 'Statut' },
+  pd_links: { en: 'Links', fr: 'Liens' },
 }
 
 interface Ctx { lang: Lang; setLang: (l: Lang) => void; t: (k: keyof typeof S) => string }

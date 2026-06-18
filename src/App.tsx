@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Projects from './components/Projects'
 import DetectorExplorer from './components/DetectorExplorer'
 import Scanner from './components/Scanner'
 import TextScramble from './components/TextScramble'
@@ -44,7 +45,7 @@ export default function App() {
           <a href="#top" className="font-mono text-[13px]"><b className="font-medium">Jean Hauser</b> <span className="text-muted">{t('nav_index')}</span></a>
           <nav className="font-mono text-[13px] flex gap-5 text-muted items-center">
             <a href="#work" className="hover:text-accent">{t('nav_work')}</a>
-            <a href="#explorer" className="hover:text-accent">{t('nav_lab')}</a>
+            <a href="#projects" className="hover:text-accent">{t('nav_lab')}</a>
             <a href="#contact" className="hover:text-accent">{t('nav_contact')}</a>
             <button onClick={() => setLang(lang === 'en' ? 'fr' : 'en')}
               className="border border-line rounded px-2 py-1 hover:border-accent hover:text-accent transition-colors" aria-label="switch language">
@@ -111,6 +112,7 @@ export default function App() {
         </div>
       </section>
 
+      <Projects />
       <DetectorExplorer />
       <Scanner />
 
