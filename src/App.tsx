@@ -3,6 +3,7 @@ import DetectorExplorer from './components/DetectorExplorer'
 import Scanner from './components/Scanner'
 import TextScramble from './components/TextScramble'
 import CascadeText from './components/CascadeText'
+import MagneticButton from './components/MagneticButton'
 import { PROFILE } from './data'
 import { useLang } from './i18n'
 
@@ -66,7 +67,7 @@ export default function App() {
         </h1>
         <p className="text-[19px] text-muted max-w-2xl mb-8">{t('hero_intro')}</p>
         <div className="flex flex-wrap items-center gap-4">
-          <a href="#contact" className="inline-flex items-center gap-2 bg-ink text-paper font-mono text-[14px] px-6 py-3 hover:bg-accent transition-colors">{t('hero_cta')}</a>
+          <MagneticButton href="#contact" className="inline-flex items-center gap-2 bg-ink text-paper font-mono text-[14px] px-6 py-3 hover:bg-accent">{t('hero_cta')}</MagneticButton>
           <a href="/JeanHauser_CV.pdf" className="font-mono text-[14px] border-b border-ink hover:text-accent hover:border-accent">{t('hero_cv')}</a>
         </div>
       </section>
