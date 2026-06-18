@@ -52,7 +52,13 @@ export const SCAN_RULES: ScanRule[] = [
     test: (s) => /require\s*\(\s*tx\.origin/.test(s) || /tx\.origin\s*==/.test(s),
     note: 'tx.origin is phishable — use msg.sender for auth.' },
   { id: 'E1', name: 'External call before state update (reentrancy)', severity: 'High',
-    test: (s) => /\.call\{?\s*value/.test(s) && /balances?\[[^\]]+\]\s*[-=]/.test(s),
+    test: (s) => {
+      if (/nonReentrant|reentrancyGuard|noReentrancy/i.test(s)) return false // guarded
+      const callIdx = s.search(/\.call\{?\s*value/)
+      if (callIdx === -1) return false
+      // vulnerable only if balance state is mutated AFTER the external call (CEI violated)
+      return /balances?\[[^\]]+\]\s*-?=/.test(s.slice(callIdx))
+    },
     note: 'State mutated after an external call — apply checks-effects-interactions or a reentrancy guard.' },
   { id: 'E34', name: 'Unchecked low-level call return', severity: 'Medium',
     test: (s) => /\.call\{?[^;]*\}?\([^;]*\)\s*;/.test(s) && !/\(\s*bool\s+\w+\s*,?/.test(s),

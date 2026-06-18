@@ -13,6 +13,7 @@ createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/projects/:slug" element={<ProjectPage />} />
+          <Route path="*" element={<App />} />
         </Routes>
       </BrowserRouter>
     </LangProvider>

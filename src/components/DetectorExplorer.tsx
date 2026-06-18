@@ -13,23 +13,30 @@ const sevClass: Record<Severity, string> = {
 export default function DetectorExplorer() {
   const { t } = useLang()
   const [q, setQ] = useState('')
-  const [eco, setEco] = useState<string>('All')
-  const [sev, setSev] = useState<string>('All')
+  const [eco, setEco] = useState<string | null>(null)
+  const [sev, setSev] = useState<Severity | null>(null)
+  const [open, setOpen] = useState(false)
 
-  const ecos = useMemo(() => ['All', ...ECOSYSTEMS.map((e) => e.name)], [])
+  const ecoSuggest = useMemo(() => {
+    const ql = q.toLowerCase()
+    return ECOSYSTEMS.filter((e) => !ql || e.name.toLowerCase().includes(ql))
+  }, [q])
+
   const filtered = useMemo(() => {
     const ql = q.toLowerCase()
     return DETECTORS.filter(
       (d) =>
-        (eco === 'All' || d.ecosystem === eco) &&
-        (sev === 'All' || d.severity === sev) &&
+        (!eco || d.ecosystem === eco) &&
+        (!sev || d.severity === sev) &&
         (!ql || (d.name + d.id + d.ecosystem).toLowerCase().includes(ql)),
     )
   }, [q, eco, sev])
 
+  const hasFilters = eco || sev || q
+
   return (
-    <section id="explorer" className="border-t border-line py-16">
-      <div className="mx-auto max-w-content px-6 md:px-8">
+    <section id="explorer" className="border-t border-line">
+      <div className="mx-auto max-w-content px-6 md:px-8 py-16">
         <div className="flex items-baseline gap-3 mb-2">
           <span className="font-mono text-[13px] text-accent">05</span>
           <h2 className="font-disp text-2xl md:text-3xl font-medium tracking-tight">{t('ex_label')}</h2>
@@ -39,25 +46,53 @@ export default function DetectorExplorer() {
           <strong className="text-ink font-medium">{ECOSYSTEMS.length}</strong> {t('ex_intro_c')}
         </p>
 
-        <div className="flex flex-wrap gap-3 mb-6">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('ex_search')}
-            className="flex-1 min-w-[180px] font-mono text-[13px] bg-white border border-line rounded-lg px-3 py-2 outline-none focus:border-accent" />
-          <select value={eco} onChange={(e) => setEco(e.target.value)} className="font-mono text-[13px] bg-white border border-line rounded-lg px-3 py-2 outline-none focus:border-accent">
-            {ecos.map((e) => <option key={e}>{e}</option>)}
-          </select>
-          <select value={sev} onChange={(e) => setSev(e.target.value)} className="font-mono text-[13px] bg-white border border-line rounded-lg px-3 py-2 outline-none focus:border-accent">
-            <option>All</option>{SEV_ORDER.map((s) => <option key={s}>{s}</option>)}
-          </select>
+        {/* action search bar */}
+        <div className="relative mb-4">
+          <div className="flex items-center gap-3 border border-line rounded-xl bg-white px-4 py-3 focus-within:border-accent transition-colors">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0" aria-hidden="true"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onFocus={() => setOpen(true)}
+              onBlur={() => setTimeout(() => setOpen(false), 150)}
+              placeholder={t('ex_search')}
+              className="flex-1 font-mono text-[13.5px] bg-transparent outline-none"
+            />
+            <span className="font-mono text-[11px] text-muted">{filtered.length}/{DETECTORS.length}</span>
+          </div>
+
+          {open && (
+            <div className="absolute z-20 left-0 right-0 mt-2 border border-line rounded-xl bg-white shadow-sm p-3 max-h-[260px] overflow-y-auto">
+              <p className="font-mono text-[10.5px] uppercase tracking-wide text-muted mb-2">ecosystems</p>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {ecoSuggest.map((e) => (
+                  <button key={e.name} onMouseDown={(ev) => { ev.preventDefault(); setEco(e.name); setOpen(false) }}
+                    className={`font-mono text-[11px] px-2 py-1 rounded border transition-colors ${eco === e.name ? 'bg-ink text-paper border-ink' : 'border-line hover:border-accent'}`}>
+                    {e.name} <span className="opacity-60">{e.count}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="font-mono text-[10.5px] uppercase tracking-wide text-muted mb-2">severity</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SEV_ORDER.map((s) => (
+                  <button key={s} onMouseDown={(ev) => { ev.preventDefault(); setSev(s); setOpen(false) }}
+                    className={`font-mono text-[11px] px-2 py-1 rounded border transition-colors ${sev === s ? 'bg-ink text-paper border-ink' : 'border-line hover:border-accent'}`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-wrap gap-1.5 mb-6">
-          {ECOSYSTEMS.map((e) => (
-            <button key={e.name} onClick={() => setEco(e.name)}
-              className={`font-mono text-[11px] px-2 py-1 rounded border transition-colors ${eco === e.name ? 'bg-ink text-paper border-ink' : 'bg-white text-muted border-line hover:border-accent'}`}>
-              {e.name} <span className="opacity-60">{e.count}</span>
-            </button>
-          ))}
-        </div>
+        {/* active filter pills */}
+        {hasFilters && (
+          <div className="flex flex-wrap gap-2 mb-5">
+            {eco && <button onClick={() => setEco(null)} className="font-mono text-[11px] bg-paper border border-accent text-accent rounded px-2 py-1">{eco} ✕</button>}
+            {sev && <button onClick={() => setSev(null)} className="font-mono text-[11px] bg-paper border border-accent text-accent rounded px-2 py-1">{sev} ✕</button>}
+            <button onClick={() => { setEco(null); setSev(null); setQ('') }} className="font-mono text-[11px] text-muted hover:text-accent">clear all</button>
+          </div>
+        )}
 
         <div className="border border-line rounded-xl overflow-hidden bg-white">
           {filtered.length === 0 && <p className="p-6 text-center font-mono text-[13px] text-muted">{t('ex_none')}</p>}

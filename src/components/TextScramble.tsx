@@ -17,9 +17,10 @@ export default function TextScramble({ text, className, as = 'span', delay = 0, 
   const [display, setDisplay] = useState(text)
   const raf = useRef<number>(0)
 
+  const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
   useEffect(() => {
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced) { setDisplay(text); return }
+    if (reduced) return // render falls back to live `text` below — no animation
 
     const start = performance.now() + delay
     const len = text.length
@@ -38,8 +39,8 @@ export default function TextScramble({ text, className, as = 'span', delay = 0, 
     }
     raf.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf.current)
-  }, [text, delay, duration])
+  }, [text, delay, duration, reduced])
 
   const Tag = as
-  return <Tag className={className}>{display}</Tag>
+  return <Tag className={className}>{reduced ? text : display}</Tag>
 }
