@@ -31,7 +31,7 @@ export default function DetectorExplorer() {
     <section id="explorer" className="border-t border-line py-16">
       <div className="mx-auto max-w-content px-6 md:px-8">
         <div className="flex items-baseline gap-3 mb-2">
-          <span className="font-mono text-[13px] text-accent">04</span>
+          <span className="font-mono text-[13px] text-accent">05</span>
           <h2 className="font-disp text-2xl md:text-3xl font-medium tracking-tight">{t('ex_label')}</h2>
         </div>
         <p className="text-muted text-[15px] max-w-2xl mb-8">
