@@ -1,10 +1,22 @@
+import { useEffect, useState } from 'react'
 import DetectorExplorer from './components/DetectorExplorer'
 import Scanner from './components/Scanner'
+import TextScramble from './components/TextScramble'
 import { PROFILE } from './data'
 import { useLang } from './i18n'
 
+const TINT = 'bg-[#F4F2EB]'
+
 export default function App() {
   const { t, lang, setLang } = useLang()
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const OUTCOMES = [
     { k: t('out1k'), v: t('out1v') },
@@ -25,23 +37,31 @@ export default function App() {
 
   return (
     <div className="font-sans text-ink">
-      <header className="mx-auto max-w-content px-6 md:px-8 flex items-center justify-between py-6 border-b border-line">
-        <span className="font-mono text-[13px]"><b className="font-medium">Jean Hauser</b> <span className="text-muted">{t('nav_index')}</span></span>
-        <nav className="font-mono text-[13px] flex gap-5 text-muted items-center">
-          <a href="#work" className="hover:text-accent">{t('nav_work')}</a>
-          <a href="#explorer" className="hover:text-accent">{t('nav_lab')}</a>
-          <a href="#contact" className="hover:text-accent">{t('nav_contact')}</a>
-          <button onClick={() => setLang(lang === 'en' ? 'fr' : 'en')}
-            className="border border-line rounded px-2 py-1 hover:border-accent hover:text-accent transition-colors" aria-label="switch language">
-            {lang === 'en' ? 'FR' : 'EN'}
-          </button>
-        </nav>
+      <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-paper/90 backdrop-blur border-b border-line py-3' : 'py-6'}`}>
+        <div className="mx-auto max-w-content px-6 md:px-8 flex items-center justify-between">
+          <a href="#top" className="font-mono text-[13px]"><b className="font-medium">Jean Hauser</b> <span className="text-muted">{t('nav_index')}</span></a>
+          <nav className="font-mono text-[13px] flex gap-5 text-muted items-center">
+            <a href="#work" className="hover:text-accent">{t('nav_work')}</a>
+            <a href="#explorer" className="hover:text-accent">{t('nav_lab')}</a>
+            <a href="#contact" className="hover:text-accent">{t('nav_contact')}</a>
+            <button onClick={() => setLang(lang === 'en' ? 'fr' : 'en')}
+              className="border border-line rounded px-2 py-1 hover:border-accent hover:text-accent transition-colors" aria-label="switch language">
+              {lang === 'en' ? 'FR' : 'EN'}
+            </button>
+          </nav>
+        </div>
       </header>
 
-      <section className="mx-auto max-w-content px-6 md:px-8 pt-20 pb-16 border-b border-line">
+      <section id="top" className="mx-auto max-w-content px-6 md:px-8 pt-16 pb-16 border-b border-line">
         <p className="font-mono text-[12px] uppercase tracking-wider text-accent mb-5">{t('hero_role')}</p>
         <h1 className="font-disp font-bold leading-[0.98] tracking-[-0.03em] text-[clamp(40px,8vw,82px)] mb-6">
-          {t('hero_l1')}<br /><span className="text-muted font-normal">{t('hero_build_pre')}<span className="text-ink border-b-[3px] border-accent pb-0.5">{t('hero_build_em')}</span>{t('hero_build_post')}</span>
+          <TextScramble text={t('hero_l1')} delay={100} />
+          <br />
+          <span className="text-muted font-normal">
+            <TextScramble text={t('hero_build_pre')} delay={400} />
+            <TextScramble text={t('hero_build_em')} className="text-ink border-b-[3px] border-accent pb-0.5" delay={550} />
+            <TextScramble text={t('hero_build_post')} delay={700} />
+          </span>
         </h1>
         <p className="text-[19px] text-muted max-w-2xl mb-8">{t('hero_intro')}</p>
         <div className="flex flex-wrap items-center gap-4">
@@ -50,15 +70,17 @@ export default function App() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-content px-6 md:px-8 py-14 border-b border-line">
-        <div className="flex items-baseline gap-3 mb-8"><span className="font-mono text-[13px] text-accent">01</span><h2 className="font-disp text-2xl md:text-3xl font-medium tracking-tight">{t('s01')}</h2></div>
-        <div className="grid md:grid-cols-3 border border-line">
-          {OUTCOMES.map((o, i) => (
-            <div key={i} className={`p-6 ${i !== 2 ? 'md:border-r border-line' : ''} ${i !== 0 ? 'border-t md:border-t-0 border-line' : ''}`}>
-              <p className="font-disp text-[18px] font-medium mb-2">{o.k}</p>
-              <p className="text-[14px] text-muted">{o.v}</p>
-            </div>
-          ))}
+      <section className={`${TINT} border-b border-line`}>
+        <div className="mx-auto max-w-content px-6 md:px-8 py-14">
+          <div className="flex items-baseline gap-3 mb-8"><span className="font-mono text-[13px] text-accent">01</span><h2 className="font-disp text-2xl md:text-3xl font-medium tracking-tight">{t('s01')}</h2></div>
+          <div className="grid md:grid-cols-3 border border-line bg-paper">
+            {OUTCOMES.map((o, i) => (
+              <div key={i} className={`p-6 ${i !== 2 ? 'md:border-r border-line' : ''} ${i !== 0 ? 'border-t md:border-t-0 border-line' : ''}`}>
+                <p className="font-disp text-[18px] font-medium mb-2">{o.k}</p>
+                <p className="text-[14px] text-muted">{o.v}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -73,30 +95,34 @@ export default function App() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-content px-6 md:px-8 py-14 border-b border-line">
-        <div className="flex items-baseline gap-3 mb-6"><span className="font-mono text-[13px] text-accent">03</span><h2 className="font-disp text-2xl md:text-3xl font-medium tracking-tight">{t('s03')}</h2></div>
-        <div className="space-y-5 max-w-3xl">
-          {DECISIONS.map((x, i) => (
-            <div key={i} className="border-l-2 border-accent pl-5">
-              <p className="text-[16px] font-medium">{x.d}</p>
-              <p className="text-[14px] text-muted mt-1"><span className="font-mono text-[12px]">{t('rejected')}</span> {x.alt} · <span className="font-mono text-[12px]">{t('why')}</span> {x.why}</p>
-            </div>
-          ))}
+      <section className={`${TINT} border-b border-line`}>
+        <div className="mx-auto max-w-content px-6 md:px-8 py-14">
+          <div className="flex items-baseline gap-3 mb-6"><span className="font-mono text-[13px] text-accent">03</span><h2 className="font-disp text-2xl md:text-3xl font-medium tracking-tight">{t('s03')}</h2></div>
+          <div className="space-y-5 max-w-3xl">
+            {DECISIONS.map((x, i) => (
+              <div key={i} className="border-l-2 border-accent pl-5">
+                <p className="text-[16px] font-medium">{x.d}</p>
+                <p className="text-[14px] text-muted mt-1"><span className="font-mono text-[12px]">{t('rejected')}</span> {x.alt} · <span className="font-mono text-[12px]">{t('why')}</span> {x.why}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       <DetectorExplorer />
       <Scanner />
 
-      <section id="work" className="mx-auto max-w-content px-6 md:px-8 py-14 border-t border-line">
-        <div className="flex items-baseline gap-3 mb-8"><span className="font-mono text-[13px] text-accent">06</span><h2 className="font-disp text-2xl md:text-3xl font-medium tracking-tight">{t('exp_title')}</h2></div>
-        <div className="border-t border-line">
-          {WORK.map((w, i) => (
-            <div key={i} className="grid grid-cols-[120px_1fr] gap-4 py-4 border-b border-line">
-              <span className="font-mono text-[12px] text-accent">{w.date}</span>
-              <span><span className="font-disp text-[17px] font-medium">{w.role}</span><div className="text-[14px] text-muted">{w.org}</div></span>
-            </div>
-          ))}
+      <section id="work" className={`${TINT} border-t border-line`}>
+        <div className="mx-auto max-w-content px-6 md:px-8 py-14">
+          <div className="flex items-baseline gap-3 mb-8"><span className="font-mono text-[13px] text-accent">06</span><h2 className="font-disp text-2xl md:text-3xl font-medium tracking-tight">{t('exp_title')}</h2></div>
+          <div className="border-t border-line">
+            {WORK.map((w, i) => (
+              <div key={i} className="grid grid-cols-[120px_1fr] gap-4 py-4 border-b border-line">
+                <span className="font-mono text-[12px] text-accent">{w.date}</span>
+                <span><span className="font-disp text-[17px] font-medium">{w.role}</span><div className="text-[14px] text-muted">{w.org}</div></span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
