@@ -79,7 +79,7 @@ export const S: Dict = {
   sc_run: { en: '▸ run scan', fr: '▸ lancer le scan' },
   sc_placeholder: { en: 'findings will appear here…', fr: 'les findings apparaîtront ici…' },
   sc_clean: { en: '✓ no issues detected by the demo ruleset', fr: '✓ aucun problème détecté par le ruleset démo' },
-  sc_note: { en: 'Demo ruleset (5 patterns). The full engine covers 277 detectors across 23 ecosystems with AST analysis.', fr: 'Ruleset démo (5 patterns). Le moteur complet couvre 277 détecteurs sur 23 écosystèmes avec analyse AST.' },
+  sc_note: { en: 'Demo ruleset (5 patterns). The full engine covers 277 detectors across 24 ecosystems with AST analysis.', fr: 'Ruleset démo (5 patterns). Le moteur complet couvre 277 détecteurs sur 24 écosystèmes avec analyse AST.' },
 }
 
 interface Ctx { lang: Lang; setLang: (l: Lang) => void; t: (k: keyof typeof S) => string }

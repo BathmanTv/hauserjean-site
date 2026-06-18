@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import DetectorExplorer from './components/DetectorExplorer'
 import Scanner from './components/Scanner'
 import TextScramble from './components/TextScramble'
+import CascadeText from './components/CascadeText'
 import { PROFILE } from './data'
 import { useLang } from './i18n'
 
@@ -127,7 +128,7 @@ export default function App() {
       </section>
 
       <section id="contact" className="mx-auto max-w-content px-6 md:px-8 py-16 border-t border-line">
-        <div className="flex items-baseline gap-3 mb-6"><span className="font-mono text-[13px] text-accent">07</span><h2 className="font-disp text-2xl md:text-3xl font-medium tracking-tight">{t('contact_title')}</h2></div>
+        <div className="flex items-baseline gap-3 mb-6"><span className="font-mono text-[13px] text-accent">07</span><h2 className="font-disp text-2xl md:text-3xl font-medium tracking-tight"><CascadeText text={t('contact_title')} /></h2></div>
         <p className="text-[16px] text-muted max-w-xl mb-6">{t('contact_sub')}</p>
         <div className="flex flex-wrap gap-3">
           <a href={`mailto:${PROFILE.email}`} className="font-mono text-[13px] border border-line rounded-lg px-4 py-2.5 hover:border-accent">{PROFILE.email}</a>

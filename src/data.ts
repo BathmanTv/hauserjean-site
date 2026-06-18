@@ -12,12 +12,14 @@ export const ECOSYSTEMS: { name: string; count: number }[] = [
   { name: 'Stellar/Soroban', count: 16 }, { name: 'Clarity', count: 15 }, { name: 'AA/4337', count: 12 },
   { name: 'Sui', count: 12 }, { name: 'Cadence', count: 12 }, { name: 'Aptos', count: 12 },
   { name: 'Sway', count: 11 }, { name: 'CosmWasm', count: 10 }, { name: 'Polkadot', count: 10 },
-  { name: 'TON/Tact', count: 10 }, { name: 'Bitcoin', count: 10 }, { name: 'NEAR', count: 9 },
-  { name: 'ink!', count: 7 }, { name: 'Cardano', count: 6 }, { name: 'Aleo', count: 5 },
-  { name: 'Algorand', count: 4 }, { name: 'Mina', count: 3 },
+  { name: 'Tact', count: 10 }, { name: 'TON', count: 4 }, { name: 'Bitcoin', count: 10 },
+  { name: 'NEAR', count: 9 }, { name: 'ink!', count: 7 }, { name: 'Cardano', count: 6 },
+  { name: 'Aleo', count: 5 }, { name: 'Algorand', count: 4 }, { name: 'Mina', count: 3 },
 ]
 
-export const TOTAL_DETECTORS = ECOSYSTEMS.reduce((s, e) => s + e.count, 0)
+// Authoritative engine size (CTF-validated detectors across the kits). Per-ecosystem
+// chip counts above are illustrative; this is the real headline figure.
+export const TOTAL_DETECTORS = 277
 
 // Representative sample of real detector classes (the explorer shows these + counts).
 export const DETECTORS: Detector[] = [
