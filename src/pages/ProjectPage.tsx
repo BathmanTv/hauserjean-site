@@ -10,6 +10,26 @@ export default function ProjectPage() {
 
   useEffect(() => { window.scrollTo(0, 0) }, [slug])
 
+  // per-route SEO metadata (Googlebot renders JS); restored on unmount
+  useEffect(() => {
+    if (!p) return
+    const prevTitle = document.title
+    const setMeta = (sel: string, attr: string, val: string) => {
+      const el = document.querySelector(sel) as HTMLMetaElement | HTMLLinkElement | null
+      const prev = el?.getAttribute(attr) ?? null
+      if (el) el.setAttribute(attr, val)
+      return () => { if (el && prev !== null) el.setAttribute(attr, prev) }
+    }
+    document.title = `${p.title} — Jean Hauser`
+    const restore = [
+      setMeta('meta[name="description"]', 'content', `${p.title} — ${p.tag.en}. Built by Jean Hauser.`),
+      setMeta('link[rel="canonical"]', 'href', `https://hauserjean.fr/projects/${p.slug}`),
+      setMeta('meta[property="og:title"]', 'content', `${p.title} — Jean Hauser`),
+      setMeta('meta[property="og:url"]', 'content', `https://hauserjean.fr/projects/${p.slug}`),
+    ]
+    return () => { document.title = prevTitle; restore.forEach((r) => r()) }
+  }, [p])
+
   if (!p) {
     return (
       <div className="mx-auto max-w-content px-6 md:px-8 py-24 font-sans text-ink">
