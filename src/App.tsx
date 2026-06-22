@@ -32,10 +32,10 @@ export default function App() {
     { d: t('d3'), alt: t('d3a'), why: t('d3w') },
   ]
   const WORK = [
-    { date: '2025 → now', role: t('w1r'), org: 'Airbus · freelance' },
-    { date: '2021 → 2025', role: t('w2r'), org: 'Airbus · via LINK & Hauban' },
-    { date: '2018 → 2020', role: t('w3r'), org: 'ALTEN · Airbus account' },
-    { date: '2018', role: t('w4r'), org: "W'COM Agency" },
+    { date: lang === 'fr' ? 'mars 2025 → auj.' : 'Mar 2025 → now', role: t('w1r'), org: 'Airbus · freelance' },
+    { date: lang === 'fr' ? 'déc. 2021 → janv. 2025' : 'Dec 2021 → Jan 2025', role: t('w2r'), org: 'Airbus · via LINK & Hauban' },
+    { date: lang === 'fr' ? 'nov. 2018 → oct. 2020' : 'Nov 2018 → Oct 2020', role: t('w3r'), org: 'ALTEN · Airbus account' },
+    { date: lang === 'fr' ? 'avr. → nov. 2018' : 'Apr → Nov 2018', role: t('w4r'), org: "W'COM Agency" },
   ]
 
   return (
