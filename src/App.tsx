@@ -57,7 +57,10 @@ export default function App() {
 
       <section id="top" className="mx-auto max-w-content px-6 md:px-8 pt-16 pb-16 border-b border-line">
         <p className="font-mono text-[12px] uppercase tracking-wider text-accent mb-5">{t('hero_role')}</p>
-        <h1 className="font-disp font-bold leading-[0.98] tracking-[-0.03em] text-[clamp(40px,8vw,82px)] mb-6">
+        <h1
+          aria-label={`${t('hero_l1')} ${t('hero_build_pre')}${t('hero_build_em')}${t('hero_build_post')}`}
+          className="font-disp font-bold leading-[0.98] tracking-[-0.03em] text-[clamp(40px,8vw,82px)] mb-6"
+        >
           <MatrixText key={t('hero_l1')} text={t('hero_l1')} initialDelay={100} />
           <br />
           <span className="text-muted font-normal">
