@@ -34,7 +34,7 @@ export default function Scanner() {
         <div className="flex flex-wrap gap-2 mb-3">
           {SAMPLE_CONTRACTS.map((c) => (
             <button key={c.label} onClick={() => { setCode(c.code); setFindings(null) }}
-              className="font-mono text-[12px] px-3 py-1.5 rounded border border-line bg-paper hover:border-accent transition-colors">
+              className="font-mono text-[12px] px-3 py-2.5 rounded border border-line bg-paper hover:border-accent transition-colors">
               {c.label}
             </button>
           ))}

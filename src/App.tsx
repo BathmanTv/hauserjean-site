@@ -43,12 +43,12 @@ export default function App() {
       <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-paper/90 backdrop-blur border-b border-line py-3' : 'py-6'}`}>
         <div className="mx-auto max-w-content px-6 md:px-8 flex items-center justify-between">
           <a href="#top" className="font-mono text-[13px]"><b className="font-medium">Jean Hauser</b> <span className="text-muted">{t('nav_index')}</span></a>
-          <nav className="font-mono text-[13px] flex gap-5 text-muted items-center">
-            <a href="#work" className="hover:text-accent">{t('nav_work')}</a>
-            <a href="#projects" className="hover:text-accent">{t('nav_lab')}</a>
-            <a href="#contact" className="hover:text-accent">{t('nav_contact')}</a>
+          <nav className="font-mono text-[13px] flex gap-4 sm:gap-5 text-muted items-center">
+            <a href="#work" className="py-2 -my-2 hover:text-accent">{t('nav_work')}</a>
+            <a href="#projects" className="py-2 -my-2 hover:text-accent">{t('nav_lab')}</a>
+            <a href="#contact" className="py-2 -my-2 hover:text-accent">{t('nav_contact')}</a>
             <button onClick={() => setLang(lang === 'en' ? 'fr' : 'en')}
-              className="border border-line rounded px-2 py-1 hover:border-accent hover:text-accent transition-colors" aria-label="switch language">
+              className="border border-line rounded px-2.5 py-1.5 hover:border-accent hover:text-accent transition-colors" aria-label="switch language">
               {lang === 'en' ? 'FR' : 'EN'}
             </button>
           </nav>
