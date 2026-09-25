@@ -9,7 +9,7 @@ import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { spawn, execFileSync } from 'node:child_process'
+import { spawn, spawnSync, execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
@@ -109,13 +109,15 @@ async function worker(w) {
   }
   ff.stdin.end()
   await closed
-  return seg
+  return { seg, frames: b - a }
 }
 const segs = (await Promise.all(Array.from({ length: WORKERS }, (_, w) => worker(w)))).filter(Boolean)
 await browser.close(); server.close()
 
+// Explicit durations: a segment's container duration stops at its last frame's pts,
+// so without them each junction overlaps by one frame and ffmpeg drops it.
 const list = path.join(tmp, 'list.txt')
-fs.writeFileSync(list, segs.map(s => `file '${s}'`).join('\n'))
+fs.writeFileSync(list, segs.map(s => `file '${s.seg}'\nduration ${(s.frames / FPS).toFixed(6)}`).join('\n'))
 const audio = path.join(OUT, 'soundtrack.wav')
 const name = arg('out', 'showreel.mp4')
 const outFile = path.join(OUT, name)
@@ -123,8 +125,11 @@ const args = ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', list]
 if (fs.existsSync(audio) && FROM === 0) args.push('-ss', '0', '-i', audio)
 args.push('-map', '0:v')
 if (fs.existsSync(audio) && FROM === 0) args.push('-map', '1:a', '-c:a', 'aac', '-b:a', '320k', '-shortest')
-args.push('-c:v', 'libx264', '-preset', 'slow', '-crf', arg('crf', '17'), '-pix_fmt', 'yuv420p', '-profile:v', 'high',
+args.push('-fps_mode', 'cfr', '-r', String(FPS), '-c:v', 'libx264', '-preset', 'slow', '-crf', arg('crf', '17'), '-pix_fmt', 'yuv420p', '-profile:v', 'high',
   '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-movflags', '+faststart', outFile)
 execFileSync(FF, args, { stdio: 'inherit' })
 fs.rmSync(tmp, { recursive: true, force: true })
+const counted = spawnSync(FF, ['-hide_banner', '-i', outFile, '-map', '0:v', '-f', 'null', '-'], { encoding: 'utf8' }).stderr
+const got = +((counted.match(/frame=\s*(\d+)/g) || ['frame=0']).pop().split('=')[1])
+if (got !== f1 - f0) { console.error(`frame count mismatch: expected ${f1 - f0}, got ${got}`); process.exitCode = 1 }
 console.log(`done in ${((Date.now() - started) / 1000).toFixed(0)}s → ${outFile}`)
