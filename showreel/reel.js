@@ -1,12 +1,13 @@
-/* Jean Hauser — Showreel 2026 (v2).
+/* Jean Hauser — Showreel 2026 (v4).
    Every visual property is a pure function of time, so any frame can be rendered in
    isolation with window.renderFrame(t). render.mjs drives this headlessly; opening
    index.html in a browser plays a live preview (space = pause, ←/→ = seek).
 
    Pacing: the v1 cut was watched at 0.6× and felt right, so every v1 scene runs on
-   "reel time" = master time × 0.6 (72 BPM instead of 120). The GIDEON case study is
-   inserted between Café Bông and Plans & Ambiances and is timed directly in master
-   seconds on the same 72 BPM grid (the 30 s cut of the GIDEON production brief). */
+   "reel time" = master time × 0.6 (72 BPM instead of 120). Each scene reads its own clock:
+   the v1 projects up to Café Bông, then Plans & Ambiances with a 5 s hold on the finished
+   plan, then GIDEON (the Discord bot, then the boss addon — timed in master seconds), then
+   the v1 finale (selected-work wall, breath, outro). */
 (() => {
 'use strict'
 
@@ -14,10 +15,26 @@ const W = 1920, H = 1080
 const SLOW = 0.6
 const BT = 60 / 72                 // one beat, master seconds
 const bt = n => n * BT
-const G0 = bt(27)                  // 22.5 s   — GIDEON case study starts (v1 t = 13.5)
-const G1 = bt(63)                  // 52.5 s   — v1 resumes at its t = 14.0
-const DUR = G1 + 6 / SLOW          // 62.5 s
-const reelT = T => (T < G0 ? T * SLOW : T >= G1 ? 14 + (T - G1) * SLOW : null)
+const P0 = bt(27)                  // 22.5 s   — Plans & Ambiances opens (v1 t = 14.4)
+const P1 = bt(36)                  // 30.0 s   — GIDEON starts
+const WB = bt(57)                  // 47.5 s   — the finale's clock anchor (v1 t = 14.0)
+const GE = WB + 1.36 / SLOW        // 49.77 s  — GIDEON ends, the wall fades in (v1 t = 15.36)
+const DUR = WB + 6 / SLOW          // 57.5 s
+const BP_BUILD = 0.85 / SLOW, BP_EXIT = 0.45
+let bpHold = 0                     // 0 → 1 across the hold on the finished plan
+const CLOCKS = {
+  A: T => (T < P0 ? T * SLOW : null),                     // v1 projects, at 0.6×
+  M: T => T,                                              // master seconds
+  P: T => {                                               // Plans & Ambiances, then a 5 s hold
+    const hold0 = P0 + BP_BUILD, hold1 = P1 - BP_EXIT
+    bpHold = clamp((T - hold0) / (hold1 - hold0))
+    if (T < P0) return null
+    if (T < hold0) return 14.4 + (T - P0) * SLOW
+    if (T < hold1) return 15.25
+    return 15.25 + (T - hold1) * SLOW
+  },
+  B: T => (T >= WB ? 14 + (T - WB) * SLOW : null),        // the v1 finale
+}
 const C = {
   // GIDEON palette — Core/Layout.lua in BathmanTv/Gideon (delivered by the raid lead)
   night: '#04050F', panel: '#0A0C22', royal: '#08218E', cyan: '#7ADBFA', gold: '#D19A45', goldHi: '#FFE982', gMuted: '#A9B4C7',
@@ -120,9 +137,9 @@ function words(parent, text) {
 
 // ───────────────────────── scenes ─────────────────────────
 const scenes = []
-function scene(name, t0, t1, z, build, master = false) {
+function scene(name, t0, t1, z, build, clock = 'A') {
   const root = h('div', { cls: 'scene', css: `z-index:${z}` }, stage)
-  const sc = { name, t0, t1, root, master, on: false, layout() {}, render() {} }
+  const sc = { name, t0, t1, root, clock: CLOCKS[clock], on: false, layout() {}, render() {} }
   Object.assign(sc, build(root))
   scenes.push(sc)
 }
@@ -694,232 +711,9 @@ scene('cafebong', 12.0, 13.5, 6, root => {
   }
 })
 
-// 06 ─ GIDEON — un bot, un addon, une guilde ─────────── master G0 → G1 + 1.25
-// The 30 s cut of the GIDEON production brief (SHOWREEL_GIDEON_VIDEO.md, §6.7): scenes 1, 4
-// and 6, voice-over shown as FR subtitles in cyan. Timed in master seconds on the 72 BPM grid.
-// Palette: night background, cyan = technical accent, gold = human accent (brief §2).
-scene('gideon', G0, G1 + 1.25, 6, root => {
-  root.style.background = C.night
-  const S1 = bt(27), S4 = bt(35), S6 = bt(55), END = bt(63)
-  const TITLE = "font-family:'Barlow Condensed',sans-serif;font-weight:700"   // single quotes: also used inside style="" attributes
-  const BODY = "font-family:'Fira Sans',sans-serif"
-  const L1 = h('div', { cls: 'fill' }, root), L4 = h('div', { cls: 'fill' }, root), L6 = h('div', { cls: 'fill' }, root)
-  const fade = (el, t, t0, d = 0.45, dy = 26) => { const p = tw(t, t0, d); O(el, p); T(el, `translateY(${(1 - p) * dy}px)`) }
-
-  // ── subtitles: the voice-over, FR, cyan ──
-  const CUES = [
-    [S1 + 0.25, S1 + 1.95, 'Trois heures de raid.'],
-    [S1 + 1.95, S1 + 3.45, 'Quarante-sept tentatives.'],
-    [S1 + 3.45, S1 + 6.1, 'Et à la fin, personne ne sait dire pourquoi on meurt.'],
-    [S4 + 5.3, S4 + 9.4, 'ANCHOR — reste sur place'],
-    [S6 + 0.35, S6 + 1.6, 'GIDEON.'],
-    [S6 + 1.6, S6 + 3.3, 'Fait pour une guilde.'],
-    [S6 + 3.3, S6 + 5.6, 'Utilisé par une guilde.'],
-  ]
-  const sub = h('div', { cls: 'abs', css: `left:0;right:0;top:944px;text-align:center;z-index:5` }, root)
-  const subIn = h('span', { css: `display:inline-block;${BODY};font-weight:500;font-size:32px;color:${C.cyan};background:rgba(4,5,15,.72);padding:8px 22px;border-radius:8px;text-shadow:0 0 18px rgba(122,219,250,.35)` }, sub)
-
-  // ── SCENE 1 — the problem: a fog of combat logs, pulls : 47 ──
-  const logBox = h('div', { cls: 'fill', css: 'transform-origin:960px 540px' }, L1)
-  const TYPES = ['SPELL_DAMAGE', 'SPELL_AURA_APPLIED', 'SPELL_CAST_SUCCESS', 'UNIT_DIED', 'SPELL_PERIODIC_DAMAGE', 'SPELL_HEAL', 'SPELL_AURA_REMOVED', 'SPELL_MISSED']
-  const blk = n => '▇'.repeat(n)                    // names are always masked
-  const FIRST = [
-    `[20:14:07.312]  SPELL_DAMAGE        Helical Toxins  ${blk(6)} → ${blk(7)}`,
-    `[20:14:07.905]  SPELL_AURA_APPLIED  Helical Toxins  ${blk(5)} → ${blk(6)}`,
-    `[20:14:08.221]  UNIT_DIED           ${blk(8)}`,
-  ]
-  const logs = []
-  FIRST.forEach((text, i) => logs.push({ el: h('div', { cls: 'abs mono', css: `left:330px;top:${420 + i * 44}px;font-size:24px;color:${C.cyan};white-space:pre`, text }, logBox), t0: S1 + 0.2 + i * 0.35, x0: 0, v: 0, y: 420 + i * 44, o: 0.95, first: true }))
-  for (let i = 0; i < 70; i++) {
-    const r = k => rnd(i * 13.7 + k)
-    const text = `[20:${String(14 + Math.floor(r(1) * 40)).padStart(2, '0')}:${String(Math.floor(r(2) * 60)).padStart(2, '0')}.${String(Math.floor(r(3) * 1000)).padStart(3, '0')}]  ${TYPES[Math.floor(r(4) * TYPES.length)].padEnd(22)}${blk(3 + Math.floor(r(5) * 7))} → ${blk(3 + Math.floor(r(6) * 8))}`
-    const y = 150 + r(7) * 780
-    logs.push({ el: h('div', { cls: 'abs mono', css: `left:0;top:${y}px;font-size:${16 + Math.floor(r(8) * 10)}px;color:${C.cyan};white-space:pre`, text }, logBox),
-      t0: S1 + 1.4 + i * 0.05, x0: -300 + r(9) * 1200, v: (r(10) - 0.5) * 220, y, o: 0.18 + r(11) * 0.4 })
-  }
-  const vign = h('div', { cls: 'fill', css: 'background:radial-gradient(ellipse 32% 30% at 50% 50%,rgba(4,5,15,.92),rgba(4,5,15,0) 100%)' }, L1)
-  const counter = h('div', { cls: 'abs', css: `left:0;right:0;top:360px;text-align:center;transform-origin:960px 180px` }, L1)
-  h('div', { cls: 'mono', css: `font-size:40px;letter-spacing:.2em;color:${C.gold}`, text: 'pulls :' }, counter)
-  const num = h('div', { css: `${TITLE};font-size:230px;line-height:1;color:${C.gold};text-shadow:0 0 40px rgba(209,154,69,.55)` }, counter)
-  const burst = h('div', { cls: 'abs', css: `left:960px;top:540px;width:0;height:0;border-radius:50%;border:6px solid ${C.cyan};box-shadow:0 0 60px ${C.cyan}` }, root)
-  const flash = h('div', { cls: 'abs', css: `left:960px;top:540px;width:0;height:0;border-radius:50%;background:radial-gradient(circle,${C.cyan},rgba(122,219,250,0) 70%)` }, root)
-
-  // ── SCENE 4 — the addon, the key scene ──
-  const head = h('div', { cls: 'abs mono', css: `left:150px;top:100px;font-size:16px;letter-spacing:.24em;color:${C.gold};white-space:pre;overflow:hidden`, html: '<div>GIDEON — UN BOT, UN ADDON, UNE GUILDE</div>' }, L4)
-  const kick = h('div', { cls: 'abs', css: `left:150px;top:134px;${TITLE};font-size:46px;letter-spacing:.02em;color:#fff;white-space:pre`, text: 'L’ADDON · INTERMISSION, ENTOMBED SENTINELS' }, L4)
-  const MAP = h('div', { cls: 'abs', css: 'left:150px;top:200px;width:940px;height:740px' }, L4)
-  const msvg = sv('svg', { width: 940, height: 740, style: 'position:absolute;left:0;top:0;overflow:visible' }, MAP)
-  const defs = sv('defs', {}, msvg)
-  const grad = sv('radialGradient', { id: 'floor', cx: '50%', cy: '50%', r: '50%' }, defs)
-  sv('stop', { offset: '0%', 'stop-color': C.royal, 'stop-opacity': 0.55 }, grad)
-  sv('stop', { offset: '70%', 'stop-color': C.panel, 'stop-opacity': 0.9 }, grad)
-  sv('stop', { offset: '100%', 'stop-color': C.night, 'stop-opacity': 1 }, grad)
-  const floor = sv('circle', { cx: 470, cy: 370, r: 330, fill: 'url(#floor)' }, msvg)
-  const ring = sv('circle', { cx: 470, cy: 370, r: 330, fill: 'none', stroke: C.gold, 'stroke-width': 1.6, 'stroke-opacity': 0.7, pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1 }, msvg)
-  const rings = [210, 110].map(r => sv('circle', { cx: 470, cy: 370, r, fill: 'none', stroke: 'rgba(169,180,199,.18)', 'stroke-width': 1, 'stroke-dasharray': '4 8' }, msvg))
-  const pass = sv('circle', { cx: 470, cy: 370, r: 10, fill: 'none', stroke: C.cyan, 'stroke-width': 3 }, msvg)
-  const trail = sv('path', { d: 'M760 190 C 620 250, 440 430, 292 540', fill: 'none', stroke: C.gold, 'stroke-width': 2.5, 'stroke-dasharray': '2 9', 'stroke-linecap': 'round', opacity: 0 }, msvg)
-  const boss = h('div', { cls: 'abs', css: `left:436px;top:336px;width:68px;height:68px;border-radius:50%;background:${C.panel};border:2px solid ${C.gold};box-shadow:0 0 30px rgba(8,33,142,.8)` }, MAP)
-  h('div', { cls: 'abs mono', css: `left:-20px;right:-20px;top:76px;text-align:center;font-size:13px;letter-spacing:.2em;color:${C.gold}`, text: 'BOSS' }, boss)
-  const ORB = { g: '#5CFF5C', r: '#FF4D4D' }
-  const player = (x, y, comp) => {
-    const el = h('div', { cls: 'abs', css: `left:${x - 24}px;top:${y - 24}px;width:48px;height:48px` }, MAP)
-    const halo = h('div', { cls: 'abs', css: `left:-18px;top:-18px;width:84px;height:84px;border-radius:50%;border:2px solid ${C.gold};opacity:0` }, el)
-    h('div', { cls: 'abs', css: `inset:0;border-radius:50%;background:${C.panel};border:2px solid ${C.gold};box-shadow:0 6px 18px rgba(0,0,0,.6)` }, el)
-    h('div', { cls: 'abs', css: `left:17px;top:6px;width:14px;height:8px;border-radius:4px;background:${C.gold}` }, el)
-    const orbs = h('div', { cls: 'abs', css: 'left:-14px;top:-30px;width:76px;display:flex;justify-content:center;gap:4px' }, el)
-    const dots = [...comp].map(c => h('i', { css: `display:block;width:14px;height:14px;border-radius:50%;background:${ORB[c]};box-shadow:0 0 10px ${ORB[c]},0 0 2px #fff inset` }, orbs))
-    return { el, halo, orbs, dots, x, y }
-  }
-  const A = player(210, 560, 'grrr')      // 1 vert + 3 rouges → ANCHOR
-  const Ch = player(760, 190, 'gggr')     // 3 verts + 1 rouge → CHASSEUR
-  const M1 = player(190, 190, 'ggrr')     // 2 + 2 → au milieu
-  const M2 = player(760, 570, 'ggrr')
-  const PL = [A, Ch, M1, M2]
-  const ping = h('div', { cls: 'abs', css: 'left:210px;top:470px;width:0;height:0' }, MAP)
-  const pingGem = h('div', { cls: 'abs', css: `left:-13px;top:-13px;width:26px;height:26px;background:${C.goldHi};transform:rotate(45deg);box-shadow:0 0 24px ${C.goldHi}` }, ping)
-  const pingRings = [0, 1].map(() => h('div', { cls: 'abs', css: `border-radius:50%;border:2px solid ${C.cyan}` }, ping))
-  const pairLab = (x, y) => h('div', { cls: 'abs mono', css: `left:${x}px;top:${y}px;transform:translateX(-50%);font-size:16px;letter-spacing:.06em;color:${C.cyan};white-space:pre;background:rgba(4,5,15,.75);padding:5px 10px;border-radius:6px;border:1px solid rgba(122,219,250,.4)`, text: '4 verts + 4 rouges  ✓' }, MAP)
-  const labA = pairLab(240, 612), labM = pairLab(470, 548)
-  // the addon's panel: opens by itself, three cards, one click, one line
-  const chip = h('div', { cls: 'abs mono', css: `left:1530px;top:190px;font-size:15px;letter-spacing:.16em;color:${C.cyan};white-space:pre`, text: 'INTERMISSION −2 s' }, L4)
-  const panel = h('div', { cls: 'gcard', css: 'left:1530px;top:228px;width:240px;height:560px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55);transform-origin:50% 0' }, L4)
-  const cards = ['3v1r', '2v2r', '1v3r'].map((s, i) => {
-    const c = h('div', { cls: 'gcard', css: `left:14px;top:${14 + i * 180}px;width:212px;height:168px;background:#070918;display:flex;align-items:center;justify-content:center` }, panel)
-    I(`gideon/${s}.png`, c, 'width:176px;height:auto')
-    return c
-  })
-  const line = h('div', { cls: 'abs', css: `left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;opacity:0`,
-    html: `<span style="${TITLE};font-size:46px;letter-spacing:.03em;color:${C.goldHi}">ANCHOR</span><span style="${BODY};font-weight:500;font-size:25px;color:#fff">— reste sur place, ping toi-même</span>` }, panel)
-  const LEG = ['2 verts + 2 rouges → au milieu', '1 vert + 3 rouges → ANCRE : tu pinges sur toi', '3 verts + 1 rouge → CHASSEUR : tu cours vers un ping']
-  const legend = LEG.map((s, i) => h('div', { cls: 'abs mono', css: `left:1170px;top:${410 + i * 52}px;font-size:19px;color:${C.cyan};white-space:pre`, text: s }, L4))
-  const insert = h('div', { cls: 'abs mono', css: `left:1170px;top:650px;font-size:14px;line-height:26px;letter-spacing:.16em;color:rgba(122,219,250,.8);white-space:pre;border-left:2px solid ${C.cyan};padding-left:14px`,
-    text: 'APPARIEMENT CORRECT PAR CONSTRUCTION\nAUCUNE LECTURE DE COMBAT\nBILINGUE FR/EN' }, L4)
-  const cursor = h('div', { cls: 'abs', css: 'left:0;top:0;width:36px;height:36px;z-index:6', html: '<svg viewBox="0 0 24 24" width="36" height="36"><path d="M3 2l7.5 19 2.6-8.1L21 10.3z" fill="#fff" stroke="#04050F" stroke-width="1.6" stroke-linejoin="round"/></svg>' }, root)
-
-  // ── SCENE 6 — the final word ──
-  const pulse = h('div', { cls: 'abs', css: 'left:960px;top:470px;width:0;height:0;border-radius:50%;background:radial-gradient(circle,rgba(255,233,130,.35) 0%,rgba(122,219,250,.4) 30%,rgba(8,33,142,.5) 55%,rgba(8,33,142,0) 72%)' }, L6)
-  const word = h('div', { cls: 'abs', css: `left:0;right:0;top:300px;text-align:center;${TITLE};font-size:260px;line-height:1;letter-spacing:.05em;color:${C.gold};text-shadow:0 0 50px rgba(209,154,69,.35)` }, L6)
-  const WL = chars(word, 'GIDEON', true)
-  const L6L = [
-    `<span style="color:${C.cyan}">Bot Discord</span> — analyse, coaching, rappels`,
-    `<span style="color:${C.cyan}">Addon WoW</span> — disponible sur CurseForge`,
-    `<span style="color:${C.gold}">Deux outils, une guilde qui progresse</span>`,
-  ].map((html, i) => h('div', { cls: 'abs', css: `left:0;right:0;top:${612 + i * 56}px;text-align:center;${BODY};font-size:32px;color:#E3E8F2`, html }, L6))
-  const black = h('div', { cls: 'fill', css: `background:${C.night};opacity:0;z-index:7` }, root)
-
-  return {
-    render(t) {
-      L1.style.display = t < S4 + 0.1 ? 'block' : 'none'; L4.style.display = t >= S4 && t < S6 ? 'block' : 'none'; L6.style.display = t >= S6 ? 'block' : 'none'
-      // subtitles
-      const cue = CUES.find(c => t >= c[0] && t < c[1])
-      V(sub, !!cue)
-      if (cue) { subIn.textContent = cue[2]; O(subIn, Math.min(tw(t, cue[0], 0.18), 1 - tw(t, cue[1] - 0.18, 0.18))) }
-
-      // scene 1
-      if (t < S4 + 0.1) {
-        logs.forEach(l => {
-          O(l.el, tw(t, l.t0, 0.3) * l.o)
-          const dx = l.first ? 0 : l.x0 + l.v * (t - l.t0)
-          const dy = l.first ? -Math.max(0, t - (S1 + 1.3)) * 26 : 0
-          T(l.el, `translate(${dx}px,${dy}px)`)
-        })
-        const fog = tw(t, S1 + 2.2, 3.4, E.io)
-        logBox.style.filter = fog > 0 ? `blur(${fog * 3.2}px)` : 'none'
-        const col = tw(t, S4 - 0.75, 0.7, E.in)                 // the fog collapses to a point
-        T(logBox, `scale(${1 - col * 0.985})`); O(logBox, 1 - col * 0.6)
-        O(vign, tw(t, S1 + 0.8, 0.8))
-        fade(counter, t, S1 + 0.9)
-        T(counter, `scale(${1 - col * 0.98})`); if (col > 0) O(counter, 1 - col)
-        num.textContent = 1 + Math.floor(46 * tw(t, S1 + 1.0, 3.6, E.io))
-      }
-      const bp = tw(t, S4 - 0.08, 0.55), br = bp * 900             // …then explodes in cyan
-      V(burst, t > S4 - 0.08 && bp < 1); V(flash, t > S4 - 0.08 && bp < 1)
-      burst.style.cssText += `;left:${960 - br}px;top:${540 - br}px;width:${2 * br}px;height:${2 * br}px;opacity:${1 - bp}`
-      const fr2 = bp * 520
-      flash.style.cssText += `;left:${960 - fr2}px;top:${540 - fr2}px;width:${2 * fr2}px;height:${2 * fr2}px;opacity:${0.9 * (1 - bp)}`
-
-      // scene 4
-      if (t >= S4 && t < S6) {
-        const u = t - S4
-        T(head.firstChild, `translateY(${(1 - tw(u, 0.1, 0.5)) * 110}%)`)
-        fade(kick, u, 0.2)
-        floor.setAttribute('opacity', tw(u, 0, 0.8))
-        draw(ring, tw(u, 0.05, 1.0, E.io))
-        rings.forEach((r, i) => r.setAttribute('opacity', tw(u, 0.5 + i * 0.15, 0.5)))
-        T(boss, `scale(${Math.max(0, spring(u - 0.35, 2.4, 0.5))})`)
-        PL.forEach((p, i) => {
-          T(p.el, `scale(${Math.max(0, spring(u - 0.5 - i * 0.12, 2.4, 0.5))})`)
-          p.dots.forEach((d, k) => T(d, `scale(${Math.max(0, spring(u - 0.9 - i * 0.12 - k * 0.05, 3, 0.45))})`))
-        })
-        // the panel opens by itself, two seconds before the intermission — "clac"
-        O(chip, tw(u, 2.0, 0.3) * (1 - tw(u, 4.8, 0.3)))
-        const op = tw(u, 2.6, 0.16, E.out)
-        const mo = tw(u, 4.8, 0.36, E.inOut)                      // after the click: one line
-        V(panel, u > 2.6)
-        panel.style.left = lerp(1530, 1170, mo) + 'px'; panel.style.width = lerp(240, 600, mo) + 'px'; panel.style.height = lerp(560, 116, mo) + 'px'
-        T(panel, `scaleY(${op})`)
-        cards.forEach((c, i) => {
-          O(c, tw(u, 2.66 + i * 0.05, 0.12) * (1 - tw(u, 4.72, 0.1, E.lin)))
-          c.style.borderColor = i === 2 && u > 4.4 ? (u > 4.55 && u < 4.7 ? C.goldHi : C.cyan) : C.gold
-        })
-        O(line, tw(u, 5.05, 0.25)); T(line, `translateY(${(1 - tw(u, 5.05, 0.35)) * 14}px)`)
-        legend.forEach((l, i) => fade(l, u, 5.8 + i * 0.8, 0.4, 16))
-        fade(insert, u, 12.8, 0.5, 12)
-        // the player clicks what they see (the addon never reads combat data), then pings themselves
-        let cx, cy
-        if (u < 5.6) { const m = tw(u, 3.6, 0.8, E.inOut); cx = lerp(1760, 1630, m); cy = lerp(1080, 700, m) }
-        else { const m = tw(u, 7.0, 0.9, E.inOut); cx = lerp(1630, 150 + 222, m); cy = lerp(700, 200 + 572, m) }
-        const press = (u > 4.55 && u < 4.7) || (u > 8.05 && u < 8.2)
-        T(cursor, `translate(${cx}px,${cy}px) scale(${press ? 0.86 : 1})`)
-        V(cursor, true); O(cursor, tw(u, 3.5, 0.2) * (1 - tw(u, 8.6, 0.3)))
-        O(A.halo, tw(u, 7.8, 0.2) * (u < 8.6 ? 1 : 0.9 + 0.1 * Math.sin(u * 6)))
-        T(A.halo, `scale(${u > 8.2 ? 1 + 0.08 * Math.sin((u - 8.2) * 7) : 1})`)
-        // ping on the anchor
-        V(ping, u > 8.2)
-        T(pingGem, `rotate(45deg) scale(${Math.max(0, spring(u - 8.2, 3, 0.4))})`)
-        pingRings.forEach((r, k) => {
-          const p = ((u - 8.2) * 0.9 + k * 0.5) % 1, rr = 12 + p * 60
-          r.style.cssText += `;left:${-rr}px;top:${-rr}px;width:${2 * rr}px;height:${2 * rr}px;opacity:${(1 - p) * 0.9}`
-        })
-        // the chaser runs to the ping, the 2 + 2 go to the middle
-        trail.setAttribute('opacity', tw(u, 9.0, 0.3) * (1 - tw(u, 12.6, 0.6)))
-        trail.style.strokeDashoffset = -u * 20
-        const run = tw(u, 9.2, 2.0, E.io)
-        const pt = trail.getPointAtLength(run * (trail._len || (trail._len = trail.getTotalLength())))
-        const bob = run > 0 && run < 1 ? Math.abs(Math.sin(u * 16)) * -5 : 0
-        Ch.el.style.left = pt.x - 24 + 'px'; Ch.el.style.top = pt.y - 24 + bob + 'px'
-        const mid = tw(u, 9.6, 1.8, E.io)
-        M1.el.style.left = lerp(190, 430, mid) - 24 + 'px'; M1.el.style.top = lerp(190, 500, mid) - 24 + 'px'
-        M2.el.style.left = lerp(760, 510, mid) - 24 + 'px'; M2.el.style.top = lerp(570, 500, mid) - 24 + 'px'
-        // pairs balance, the group gets through
-        const okA = tw(u, 11.25, 0.35), okM = tw(u, 11.5, 0.35)
-        fade(labA, u, 11.25, 0.35, 10); fade(labM, u, 11.5, 0.35, 10)
-        ;[A, Ch].forEach(p => p.dots.forEach(d => { d.style.filter = okA > 0 ? `brightness(${1 + 0.6 * okA})` : 'none' }))
-        ;[M1, M2].forEach(p => p.dots.forEach(d => { d.style.filter = okM > 0 ? `brightness(${1 + 0.6 * okM})` : 'none' }))
-        const g = tw(u, 12.2, 1.2)
-        pass.setAttribute('r', 10 + g * 330); pass.setAttribute('opacity', u > 12.2 ? 1 - g : 0)
-        ring.setAttribute('stroke', u > 12.2 && u < 13.4 ? C.cyan : C.gold)
-        const out = tw(u, S6 - S4 - 0.3, 0.3, E.in)
-        O(L4, 1 - out); L4.style.filter = out > 0 ? `blur(${out * 8}px)` : 'none'
-      } else V(cursor, false)
-
-      // scene 6
-      if (t >= S6) {
-        const v = t - S6
-        const pp = tw(v, 0.05, 1.3), pr = pp * 1100
-        pulse.style.cssText += `;left:${960 - pr}px;top:${470 - pr}px;width:${2 * pr}px;height:${2 * pr}px;opacity:${1 - pp}`
-        WL.forEach((l, i) => T(l.inner, `translateY(${(1 - tw(v, 0.12 + i * 0.05, 0.6)) * 110}%)`))
-        L6L.forEach((l, i) => fade(l, v, 0.9 + i * 0.4, 0.6, 20))
-        O(black, tw(t, END - 0.6, 0.6, E.io))
-      } else O(black, 0)
-    },
-  }
-}, true)
-
-// 07 ─ PLANS & AMBIANCES (outil-archi) ─────────────────── reel 14.0 → 15.5
-// Transparent until its circle wipe opens over the last GIDEON chapter.
-scene('blueprint', 14.0, 15.5, 7, root => {
+// 06 ─ PLANS & AMBIANCES (outil-archi) ─────────────────── reel 14.4 → 15.52
+// Its circle wipe opens over the end of Café Bông; the finished plan then holds 5 s.
+scene('blueprint', 14.0, 15.53, 7, root => {
   const CX = 960, CY = 560
   // blueprint — outil-archi "Plans & Ambiances"
   const bp = h('div', { cls: 'fill', css: 'background-color:#08218E;background-image:linear-gradient(rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:160px 160px,160px 160px,32px 32px,32px 32px;background-position:-1px -1px' }, root)
@@ -966,10 +760,143 @@ scene('blueprint', 14.0, 15.5, 7, root => {
       })
       T(amb, `scale(${Math.max(0, spring(t - 15.1, 2.6, 0.45))})`)
       const iso = tw(t, 15.26, 0.26, E.inOut)
-      T(plan, `perspective(3000px) rotateX(${iso * 52}deg) rotateZ(${-iso * 36}deg) scale(${1 - iso * 0.35})`)
+      const hd = E.io(bpHold)                                      // slow push-in during the hold
+      T(plan, `perspective(3000px) rotateX(${iso * 52}deg) rotateZ(${-iso * 36}deg) scale(${(1 - iso * 0.35) * (1 + 0.05 * hd)}) translateX(${-24 * hd}px)`)
+      O(bp, 1 - tw(t, 15.4, 0.12, E.lin))                         // …then fades to night for GIDEON
     },
   }
-})
+}, 'P')
+
+// 07 ─ GIDEON — le bot Discord, puis l'addon de boss ──────── master P1 → GE + 0.3
+// Simplified on purpose. Texts come from FONCTIONNEMENT_BOT.md (the bot) and the GIDEON
+// brief / GideonRaid README (the addon). The bot is shown as an animated diagram of a
+// command's journey, not as a fake Discord screenshot. Timed in master seconds, 72 BPM.
+scene('gideon', P1, GE + 0.3, 6, root => {
+  root.style.background = C.night
+  const TITLE = "font-family:'Barlow Condensed',sans-serif;font-weight:700"   // single quotes: also used inside style=""
+  const BODY = "font-family:'Fira Sans',sans-serif"
+  const A0 = P1, B0 = bt(47), C0 = bt(56)
+  const fade = (el, t, t0, d = 0.45, dy = 26) => { const p = tw(t, t0, d); O(el, p); T(el, `translateY(${(1 - p) * dy}px)`) }
+  const pop = (el, t, t0) => { const p = spring(t - t0, 2.4, 0.5); T(el, `scale(${Math.max(0, p)})`); O(el, clamp((t - t0) * 8)) }
+  h('div', { cls: 'fill', css: 'background:radial-gradient(ellipse 60% 55% at 70% 45%,rgba(8,33,142,.45),transparent 70%)' }, root)
+  h('div', { cls: 'fill dotgrid' }, root)
+  const LA = h('div', { cls: 'fill' }, root), LB = h('div', { cls: 'fill' }, root), LC = h('div', { cls: 'fill' }, root)
+  const header = (L, text) => h('div', { cls: 'abs mono', css: `left:150px;top:120px;font-size:16px;letter-spacing:.24em;color:${C.gold};white-space:pre`, text }, L)
+  const title = (L, text) => words(h('div', { cls: 'abs', css: `left:150px;top:152px;${TITLE};font-size:84px;line-height:1;letter-spacing:.01em;color:#fff` }, L), text)
+  const icon = d => `<svg viewBox="0 0 24 24" width="44" height="44"><path d="${d}" fill="none" stroke="${C.cyan}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+
+  // ── A · the Discord bot: the journey of one command ──
+  const hA = header(LA, 'GIDEON · LE BOT DISCORD')
+  const tA = title(LA, 'Un coach de raid qui vit dans Discord.')
+  const STEPS = [
+    ['M4 7l5 5-5 5M12 17h8', '!greport <code>', 'UN JOUEUR COLLE LE LIEN D’UN COMBAT'],
+    ['M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9', 'Gideon analyse le log', 'ACCUSÉ DE RÉCEPTION IMMÉDIAT'],
+    ['M4 8h15l-3-3M20 16H5l3 3', 'API Warcraft Logs', 'LES LOGS OFFICIELS DU JEU'],
+    ['M9 3L7 21M17 3l-2 18M4 9h17M3 15h17', 'Un fil s’ouvre', 'LE SALON DE LA GUILDE RESTE PROPRE'],
+    ['M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6', 'Résumé + rapport HTML', 'WIPES · PODIUM DES MORTS · JOUEURS PROPRES'],
+  ]
+  const cards = STEPS.map(([d, label, sub], i) => {
+    const c = h('div', { cls: 'gcard', css: `left:${150 + i * 330}px;top:380px;width:300px;height:250px;padding:28px 26px;display:flex;flex-direction:column;gap:18px` }, LA)
+    const ic = h('div', { html: icon(d), css: 'width:44px;height:44px' }, c)
+    const lab = h('div', { css: i === 0 ? `font:500 25px var(--mono);color:${C.cyan};white-space:pre` : `${BODY};font-weight:500;font-size:27px;line-height:1.2;color:#fff` , text: label }, c)
+    h('div', { cls: 'mono', css: `font-size:13px;line-height:1.6;letter-spacing:.14em;color:${C.gMuted}`, text: sub }, c)
+    return { c, ic, lab, label, t0: A0 + 1.0 + i * 0.85 }
+  })
+  const track = h('div', { cls: 'abs', css: 'left:300px;top:676px;width:1320px;height:2px;background:rgba(169,180,199,.18);transform-origin:0 50%' }, LA)
+  const trackFill = h('div', { cls: 'abs', css: `left:0;top:0;bottom:0;width:100%;background:${C.cyan};transform-origin:0 50%;transform:scaleX(0)` }, track)
+  const nodes = STEPS.map((_, i) => h('div', { cls: 'abs', css: `left:${300 + i * 330 - 7}px;top:670px;width:14px;height:14px;border-radius:50%;background:${C.night};border:2px solid ${C.cyan}` }, LA))
+  const runner = h('div', { cls: 'abs', css: `top:671px;width:12px;height:12px;border-radius:50%;background:${C.cyan};box-shadow:0 0 16px ${C.cyan}` }, LA)
+  const p1 = h('div', { cls: 'abs', css: `left:150px;top:752px;${BODY};font-size:32px;color:#fff`, text: 'Il lit les logs officiels du jeu et rend un verdict chiffré.' }, LA)
+  const p2 = h('div', { cls: 'abs', css: `left:150px;top:800px;${BODY};font-weight:500;font-size:32px;color:${C.gold}`, text: 'Chaque chiffre est traçable jusqu’à sa source.' }, LA)
+
+  // ── B · the boss addon: one click, one role ──
+  const hB = header(LB, 'GIDEON · L’ADDON DE BOSS')
+  const tB = title(LB, 'Un clic, un rôle, et le groupe passe.')
+  const subB = h('div', { cls: 'abs', css: `left:150px;top:262px;width:980px;${BODY};font-size:28px;line-height:1.45;color:${C.gMuted}`,
+    text: 'Sur le boss à intermissions, le panneau s’ouvre tout seul. Le joueur déclare ses orbes, l’addon lui donne son rôle.' }, LB)
+  const panel = h('div', { cls: 'gcard', css: 'left:150px;top:380px;width:240px;height:560px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55);transform-origin:50% 0' }, LB)
+  const pcards = ['3v1r', '2v2r', '1v3r'].map((s, i) => {
+    const c = h('div', { cls: 'gcard', css: `left:14px;top:${14 + i * 180}px;width:212px;height:168px;background:#070918;display:flex;align-items:center;justify-content:center` }, panel)
+    I(`gideon/${s}.png`, c, 'width:176px;height:auto')
+    return c
+  })
+  const line = h('div', { cls: 'abs', css: 'left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;opacity:0',
+    html: `<span style="${TITLE};font-size:46px;letter-spacing:.03em;color:${C.goldHi}">ANCHOR</span><span style="${BODY};font-weight:500;font-size:25px;color:#fff">— reste sur place, ping toi-même</span>` }, panel)
+  const LEG = ['2 verts + 2 rouges → au milieu', '1 vert + 3 rouges → ANCRE : tu pinges sur toi', '3 verts + 1 rouge → CHASSEUR : tu cours vers un ping']
+  const legend = LEG.map((s, i) => h('div', { cls: 'abs mono', css: `left:150px;top:${548 + i * 52}px;font-size:21px;color:${C.cyan};white-space:pre`, text: s }, LB))
+  const PAIRS = [['1v3r', '3v1r'], ['2v2r', '2v2r']]
+  const rows = PAIRS.map(([a, b2], r) => {
+    const card = h('div', { cls: 'gcard', css: `left:1060px;top:${392 + r * 206}px;width:710px;height:186px;display:flex;align-items:center;padding:0 24px;gap:16px` }, LB)
+    I(`gideon/${a}.png`, card, 'width:160px;height:auto')
+    h('div', { css: `${TITLE};font-size:48px;color:${C.gMuted}`, text: '+' }, card)
+    I(`gideon/${b2}.png`, card, 'width:160px;height:auto')
+    h('div', { css: `${TITLE};font-size:48px;color:${C.gMuted}`, text: '=' }, card)
+    const out = h('div', { css: `${BODY};font-weight:500;font-size:27px;line-height:1.2;color:${C.cyan};white-space:nowrap`, html: '✓ 4 verts<br>+ 4 rouges' }, card)
+    return { card, out, t0: B0 + 2.9 + r * 0.55 }
+  })
+  const links = h('div', { cls: 'abs mono', css: `left:1060px;top:830px;font-size:16px;letter-spacing:.14em;color:${C.gold};white-space:pre`, text: 'CURSEFORGE · GITHUB.COM/BATHMANTV/GIDEON' }, LB)
+  const cursor = h('div', { cls: 'abs', css: 'left:0;top:0;width:36px;height:36px;z-index:6', html: '<svg viewBox="0 0 24 24" width="36" height="36"><path d="M3 2l7.5 19 2.6-8.1L21 10.3z" fill="#fff" stroke="#04050F" stroke-width="1.6" stroke-linejoin="round"/></svg>' }, root)
+
+  // ── C · the name ──
+  const pulse = h('div', { cls: 'abs', css: 'left:960px;top:470px;width:0;height:0;border-radius:50%;background:radial-gradient(circle,rgba(255,233,130,.35) 0%,rgba(122,219,250,.4) 30%,rgba(8,33,142,.5) 55%,rgba(8,33,142,0) 72%)' }, LC)
+  const word = h('div', { cls: 'abs', css: `left:0;right:0;top:320px;text-align:center;${TITLE};font-size:240px;line-height:1;letter-spacing:.05em;color:${C.gold};text-shadow:0 0 50px rgba(209,154,69,.35)` }, LC)
+  const WL = chars(word, 'GIDEON', true)
+  const tag = h('div', { cls: 'abs', css: `left:0;right:0;top:600px;text-align:center;${BODY};font-size:36px;color:#E3E8F2`, html: `Un <span style="color:${C.cyan}">bot</span>, un <span style="color:${C.cyan}">addon</span>, une <span style="color:${C.gold}">guilde</span>.` }, LC)
+  const dark = h('div', { cls: 'fill', css: `background:${C.night};opacity:0;z-index:7` }, root)
+
+  const outOf = (L, t, end) => { const o = tw(t, end - 0.3, 0.3, E.in); O(L, 1 - o); L.style.filter = o > 0 ? `blur(${o * 8}px)` : 'none' }
+  return {
+    render(t) {
+      LA.style.display = t < B0 ? 'block' : 'none'; LB.style.display = t >= B0 && t < C0 ? 'block' : 'none'; LC.style.display = t >= C0 ? 'block' : 'none'
+      V(cursor, t >= B0 && t < C0)
+      if (t < B0) {
+        fade(hA, t, A0 + 0.05); tA.forEach((w, j) => T(w, `translateY(${(1 - tw(t, A0 + 0.12 + j * 0.05, 0.55)) * 118}%)`))
+        cards.forEach((s, i) => {
+          pop(s.c, t, s.t0)
+          s.c.style.borderColor = t > s.t0 && t < s.t0 + 0.85 ? C.cyan : C.gold
+          O(nodes[i], tw(t, s.t0, 0.2)); nodes[i].style.background = t > s.t0 + 0.1 ? C.cyan : C.night
+        })
+        const n = Math.floor(STEPS[0][1].length * tw(t, A0 + 1.15, 0.6, E.lin))        // the command types itself
+        cards[0].lab.textContent = STEPS[0][1].slice(0, n) + (n < STEPS[0][1].length && t > A0 + 1.1 ? '_' : '')
+        T(cards[1].ic, `rotate(${t > cards[1].t0 ? Math.floor((t - cards[1].t0) / 0.5) * 180 : 0}deg)`)
+        T(track, `scaleX(${tw(t, A0 + 0.9, 0.4)})`)
+        const k = clamp((t - (A0 + 1.0)) / (0.85 * 4))
+        T(trackFill, `scaleX(${k})`)
+        runner.style.left = 300 + k * 1320 - 6 + 'px'; O(runner, t > A0 + 1.0 && t < A0 + 6.2 ? 1 : 0)
+        fade(p1, t, A0 + 5.6); fade(p2, t, A0 + 6.2)
+        outOf(LA, t, B0)
+      } else if (t < C0) {
+        const u = t - B0
+        fade(hB, u, 0.05); tB.forEach((w, j) => T(w, `translateY(${(1 - tw(u, 0.12 + j * 0.05, 0.55)) * 118}%)`))
+        fade(subB, u, 0.45)
+        const op = tw(u, 0.9, 0.16), mo = tw(u, 2.3, 0.36, E.inOut)
+        V(panel, u > 0.9); T(panel, `scaleY(${op})`)
+        panel.style.width = lerp(240, 620, mo) + 'px'; panel.style.height = lerp(560, 116, mo) + 'px'
+        pcards.forEach((c, i) => {
+          O(c, tw(u, 0.95 + i * 0.05, 0.12) * (1 - tw(u, 2.22, 0.1, E.lin)))
+          c.style.borderColor = i === 2 && u > 1.95 ? (u > 2.08 && u < 2.2 ? C.goldHi : C.cyan) : C.gold
+        })
+        O(line, tw(u, 2.5, 0.25))
+        legend.forEach((l, i) => fade(l, u, 3.0 + i * 0.4, 0.4, 14))
+        rows.forEach(r => { pop(r.card, t, r.t0); O(r.out, tw(t, r.t0 + 0.35, 0.3)) })
+        fade(links, u, 4.8, 0.45, 12)
+        const m = tw(u, 1.4, 0.6, E.inOut), press = u > 2.08 && u < 2.2
+        T(cursor, `translate(${lerp(760, 268, m)}px,${lerp(1080, 842, m)}px) scale(${press ? 0.86 : 1})`)
+        O(cursor, tw(u, 1.3, 0.2) * (1 - tw(u, 2.6, 0.3)))
+        outOf(LB, t, C0)
+      } else {
+        const v = t - C0
+        const pp = tw(v, 0.05, 1.3), pr = pp * 1100
+        pulse.style.cssText += `;left:${960 - pr}px;top:${470 - pr}px;width:${2 * pr}px;height:${2 * pr}px;opacity:${1 - pp}`
+        WL.forEach((l, i) => T(l.inner, `translateY(${(1 - tw(v, 0.1 + i * 0.05, 0.6)) * 110}%)`))
+        fade(tag, v, 0.8, 0.5, 18)
+      }
+      O(dark, tw(t, GE - 0.35, 0.35, E.io))
+    },
+  }
+}, 'M')
+
+
 
 // 08 ─ SELECTED WORK — isometric wall + hyper-cut ─────────── 15.36 → 17.5
 scene('wall', 15.36, 17.5, 8, root => {
@@ -1035,7 +962,7 @@ scene('wall', 15.36, 17.5, 8, root => {
       }
     },
   }
-})
+}, 'B')
 
 // ─ breath: flash, then silence with a lone caret ───────────── 17.5 → 18.0
 scene('breath', 17.5, 18.0, 9, root => {
@@ -1046,7 +973,7 @@ scene('breath', 17.5, 18.0, 9, root => {
       V(caret, t > 17.72 && Math.floor((t - 17.72) / 0.07) % 2 === 0)
     },
   }
-})
+}, 'B')
 
 // 09 ─ OUTRO ─────────────────────────────────────────────── 18.0 → 20.0
 scene('outro', 18.0, 20.01, 10, root => {
@@ -1099,7 +1026,7 @@ scene('outro', 18.0, 20.01, 10, root => {
       T(wrap, `scale(${lerp(1, 1.03, tw(t, 18.2, 1.8, E.io))})`)
     },
   }
-})
+}, 'B')
 
 // ───────────────────────── HUD + film grain ─────────────────────────
 const hud = h('div', { cls: 'hud' }, stage)
@@ -1114,11 +1041,11 @@ const barFill = h('i', {}, barBox)
 h('div', { cls: 'abs', css: 'right:280px;bottom:44px', text: 'HAUSERJEAN.FR' }, hudInfo)
 const SECTIONS = [
   [0, '00 / BOOT'], [2.0 / SLOW, '01 / MANIFESTO'], [4.0 / SLOW, '02 / DONATELLO — SECURITY'], [8.0 / SLOW, '03 / HAUUM — WEB'],
-  [9.85 / SLOW, '04 / CHỢ VỈA HÈ — WEB'], [12.0 / SLOW, '05 / CAFÉ BÔNG — WEB'], [G0, '06 / GIDEON — UN BOT, UN ADDON, UNE GUILDE'],
-  [G1 + 0.45 / SLOW, '07 / PLANS & AMBIANCES — PWA'], [G1 + 1.4 / SLOW, '08 / SELECTED WORK'],
+  [9.85 / SLOW, '04 / CHỢ VỈA HÈ — WEB'], [12.0 / SLOW, '05 / CAFÉ BÔNG — WEB'], [P0 + 0.1, '06 / PLANS & AMBIANCES — PWA'],
+  [P1, '07 / GIDEON — BOT DISCORD + ADDON'], [GE, '08 / SELECTED WORK'],
 ]
 function renderHud(t) {
-  V(hudInfo, t < G1 + 4 / SLOW)
+  V(hudInfo, t < WB + 4 / SLOW)
   const f = Math.floor(t * 60 + 1e-6)
   tc.textContent = `00:00:${String(Math.floor(f / 60)).padStart(2, '0')}:${String(f % 60).padStart(2, '0')}`
   let s = SECTIONS[0]
@@ -1143,7 +1070,7 @@ h('div', { cls: 'vignette' }, stage)
 
 function renderFrame(T) {
   for (const sc of scenes) {
-    const t = sc.master ? T : reelT(T)
+    const t = sc.clock(T)
     const on = t !== null && t >= sc.t0 && t < sc.t1
     if (on !== sc.on) { sc.root.style.display = on ? 'block' : 'none'; sc.on = on }
     if (on) sc.render(t)
