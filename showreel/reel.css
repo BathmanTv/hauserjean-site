@@ -12,11 +12,18 @@
 @font-face { font-family: "Dancing Script"; src: url(assets/fonts/dancing-script-600.woff2) format("woff2"); font-weight: 600; font-display: block; }
 
 :root {
-  --ink: #0B0C0E;
-  --paper: #F4F3EF;
+  /* GIDEON palette — Core/Layout.lua in BathmanTv/Gideon (delivered by the raid lead) */
+  --night: #04050F;
+  --panel: #0A0C22;
+  --royal: #08218E;
+  --cyan: #7ADBFA;
+  --gold: #D19A45;
+  --gold-hi: #FFE982;
+  --g-muted: #A9B4C7;
+  /* hauserjean.fr — tailwind.config.js */
+  --paper: #FAFAF9;
+  --ink: #111111;
   --blue: #1D4ED8;
-  --blue-hi: #3D6BFF;
-  --ox: #7A2E2E;
   --mono: "JetBrains Mono", ui-monospace, monospace;
   --disp: "Space Grotesk", sans-serif;
 }
@@ -26,7 +33,7 @@ body { width: 100vw; height: 100vh; }
 
 #stage {
   position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
-  overflow: hidden; background: var(--ink); color: var(--paper);
+  overflow: hidden; background: var(--night); color: var(--paper);
   transform-origin: 0 0; font-family: "Inter", sans-serif;
   -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
 }
@@ -41,12 +48,12 @@ body { width: 100vw; height: 100vh; }
 .ch.mask { overflow: hidden; padding: 0.04em 0.01em 0.1em; margin: -0.04em -0.01em -0.1em; }
 .chi { display: inline-block; will-change: auto; }
 
-.gl { position: absolute; background: rgba(255,255,255,.09); }
+.gl { position: absolute; background: rgba(169,180,199,.11); }
 .gl.v { top: 0; bottom: 0; width: 1px; }
 .gl.h { left: 0; right: 0; height: 1px; }
 
 .dotgrid {
-  background-image: radial-gradient(rgba(255,255,255,.10) 1.2px, transparent 1.4px);
+  background-image: radial-gradient(rgba(169,180,199,.12) 1.2px, transparent 1.4px);
   background-size: 32px 32px;
 }
 
@@ -59,18 +66,18 @@ body { width: 100vw; height: 100vh; }
 
 .grain { position: absolute; inset: 0; z-index: 60; pointer-events: none; mix-blend-mode: overlay; opacity: .07; image-rendering: auto; }
 .vignette { position: absolute; inset: 0; z-index: 59; pointer-events: none;
-  background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, rgba(0,0,0,.16) 100%); }
+  background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, rgba(4,5,15,.16) 100%); }
 
 /* code panel */
-.code { position: absolute; background: #111216; border: 1px solid #23252c; border-radius: 16px; overflow: hidden;
-  box-shadow: 0 40px 90px rgba(0,0,0,.5); }
-.code .bar { height: 54px; border-bottom: 1px solid #23252c; display: flex; align-items: center; gap: 10px; padding: 0 22px;
-  font: 500 18px var(--mono); color: #8b90a0; }
-.code .dot { width: 13px; height: 13px; border-radius: 50%; background: #2b2e37; }
+.code { position: absolute; background: var(--panel); border: 1px solid rgba(209,154,69,.38); border-radius: 16px; overflow: hidden;
+  box-shadow: 0 40px 90px rgba(0,0,0,.55), 0 0 60px rgba(8,33,142,.25); }
+.code .bar { height: 54px; border-bottom: 1px solid rgba(209,154,69,.22); display: flex; align-items: center; gap: 10px; padding: 0 22px;
+  font: 500 18px var(--mono); color: var(--g-muted); }
+.code .dot { width: 13px; height: 13px; border-radius: 50%; background: #1B2046; }
 .code .ln { position: absolute; left: 0; right: 0; height: 52px; font: 400 26px/52px var(--mono); white-space: pre; }
 .code .hl { position: absolute; left: 0; right: 0; top: 4px; bottom: 4px; transform-origin: left; }
-.tok-kw { color: #7C9BFF; } .tok-ty { color: #C792EA; } .tok-fn { color: #F4F3EF; } .tok-id { color: #C9CDD8; }
-.tok-str { color: #F5A524; } .tok-p { color: #7D8391; }
+.tok-kw { color: var(--cyan); } .tok-ty { color: var(--gold); } .tok-fn { color: #FFFFFF; } .tok-id { color: #CBD3E1; }
+.tok-str { color: var(--gold-hi); } .tok-p { color: #6F7890; }
 
 .pill { display: inline-flex; align-items: center; border-radius: 999px; }
 
@@ -78,3 +85,12 @@ body { width: 100vw; height: 100vh; }
 .face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 18px; padding: 34px 38px; box-sizing: border-box; }
 
 img { display: block; }
+
+/* GIDEON card style (Layout.SHIPPED_STYLE): 1 px gold border, cyan under the mouse, bright gold pressed */
+.gcard { position: absolute; background: var(--panel); border: 1px solid var(--gold); border-radius: 10px; box-sizing: border-box; }
+.term { position: absolute; background: #070918; border: 1px solid rgba(209,154,69,.35); border-radius: 14px; overflow: hidden;
+  font: 400 20px/34px var(--mono); color: #CBD3E1; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+.term .tb { height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 18px; border-bottom: 1px solid rgba(209,154,69,.2);
+  font-size: 15px; color: var(--g-muted); letter-spacing: .06em; }
+.term .tb i { width: 11px; height: 11px; border-radius: 50%; background: #1B2046; display: inline-block; }
+.term .tl { white-space: pre; padding: 0 24px; }

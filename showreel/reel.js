@@ -1,15 +1,34 @@
-/* Jean Hauser — Showreel 2026.
-   Every visual property is a pure function of time t (seconds), so any frame can be
-   rendered in isolation with window.renderFrame(t). render.mjs drives this headlessly;
-   opening index.html in a browser plays a live preview (space = pause, ←/→ = seek). */
+/* Jean Hauser — Showreel 2026 (v2).
+   Every visual property is a pure function of time, so any frame can be rendered in
+   isolation with window.renderFrame(t). render.mjs drives this headlessly; opening
+   index.html in a browser plays a live preview (space = pause, ←/→ = seek).
+
+   Pacing: the v1 cut was watched at 0.6× and felt right, so every v1 scene runs on
+   "reel time" = master time × 0.6 (72 BPM instead of 120). The GIDEON case study is
+   inserted between Café Bông and Plans & Ambiances and is timed directly in master
+   seconds on the same 72 BPM grid. */
 (() => {
 'use strict'
 
-const W = 1920, H = 1080, DUR = 20
+const W = 1920, H = 1080
+const SLOW = 0.6
+const BT = 60 / 72                 // one beat, master seconds
+const bt = n => n * BT
+const G0 = bt(27)                  // 22.5 s   — GIDEON case study starts (v1 t = 13.5)
+const G1 = bt(47)                  // 39.17 s  — v1 resumes at its t = 14.0
+const DUR = G1 + 6 / SLOW          // 49.17 s
+const reelT = T => (T < G0 ? T * SLOW : T >= G1 ? 14 + (T - G1) * SLOW : null)
 const C = {
-  ink: '#0B0C0E', paper: '#F4F3EF', blue: '#1D4ED8', blueHi: '#3D6BFF', ox: '#7A2E2E',
-  red: '#E5484D', amber: '#F5A524', green: '#3DD68C', muted: '#8B90A0',
+  // GIDEON palette — Core/Layout.lua in BathmanTv/Gideon (delivered by the raid lead)
+  night: '#04050F', panel: '#0A0C22', royal: '#08218E', cyan: '#7ADBFA', gold: '#D19A45', goldHi: '#FFE982', gMuted: '#A9B4C7',
+  // hauserjean.fr — tailwind.config.js
+  paper: '#FAFAF9', siteInk: '#111111', blue: '#1D4ED8',
+  // semantic
+  red: '#E5484D', amber: '#F5A524', green: '#3DD68C', wow: '#40FF40',  // wow = the addon's THEME.GREEN
 }
+C.ink = C.night        // dark grounds
+C.blueHi = C.cyan      // highlights on dark grounds
+C.muted = C.gMuted
 const stage = document.getElementById('stage')
 const q = new URLSearchParams(location.search)
 
@@ -86,12 +105,24 @@ function I(src, parent, css = '') {
   return el
 }
 const draw = (path, p) => { path.style.strokeDashoffset = 1 - p }  // paths use pathLength="1"
+// words of a title, each in its own mask so it can rise; "\n" starts a new line
+function words(parent, text) {
+  const out = []
+  text.split('\n').forEach(line => {
+    const row = h('div', { css: 'white-space:nowrap' }, parent)
+    line.split(' ').forEach(wd => {
+      const m = h('span', { css: 'display:inline-block;overflow:hidden;vertical-align:bottom;padding:0 .03em .14em;margin:0 .2em -.14em -.03em' }, row)
+      out.push(h('span', { css: 'display:inline-block', text: wd }, m))
+    })
+  })
+  return out
+}
 
 // ───────────────────────── scenes ─────────────────────────
 const scenes = []
-function scene(name, t0, t1, z, build) {
+function scene(name, t0, t1, z, build, master = false) {
   const root = h('div', { cls: 'scene', css: `z-index:${z}` }, stage)
-  const sc = { name, t0, t1, root, on: false, layout() {}, render() {} }
+  const sc = { name, t0, t1, root, master, on: false, layout() {}, render() {} }
   Object.assign(sc, build(root))
   scenes.push(sc)
 }
@@ -102,11 +133,11 @@ scene('boot', 0, 2.0, 1, root => {
   const vl = [], hl = []
   for (let i = 0; i <= 12; i++) vl.push(h('div', { cls: 'gl v', css: `left:${96 + i * 144}px` }, root))
   for (let j = 0; j <= 6; j++) hl.push(h('div', { cls: 'gl h', css: `top:${96 + j * 148}px` }, root))
-  const tag = h('div', { cls: 'abs mono', css: `left:0;right:0;top:318px;text-align:center;font-size:19px;letter-spacing:.34em;color:${C.blueHi}`, text: 'SHOWREEL — 2026' }, root)
+  const tag = h('div', { cls: 'abs mono', css: `left:0;right:0;top:318px;text-align:center;font-size:19px;letter-spacing:.34em;color:${C.gold}`, text: 'SHOWREEL — 2026' }, root)
   const name = h('div', { cls: 'abs disp', css: 'left:0;right:0;top:372px;text-align:center;font-size:212px;font-weight:700;line-height:1;letter-spacing:-.045em;white-space:nowrap' }, root)
   const L = chars(name, 'JEAN HAUSER', true)
-  const caret = h('div', { cls: 'abs', css: `top:398px;width:22px;height:158px;background:${C.blueHi}` }, root)
-  const role = h('div', { cls: 'abs mono', css: 'left:0;right:0;top:648px;text-align:center;font-size:22px;letter-spacing:.24em;color:rgba(244,243,239,.72);white-space:pre' }, root)
+  const caret = h('div', { cls: 'abs', css: `top:398px;width:22px;height:158px;background:${C.gold}` }, root)
+  const role = h('div', { cls: 'abs mono', css: 'left:0;right:0;top:648px;text-align:center;font-size:22px;letter-spacing:.24em;color:rgba(169,180,199,.92);white-space:pre' }, root)
   const ROLE = 'SENIOR PRODUCT OWNER · CYBERSECURITY PM · BUILDER'
   const panel = h('div', { cls: 'fill', css: `background:${C.blue};transform-origin:50% 100%;transform:scaleY(0)` }, root)
   let xs = []
@@ -161,7 +192,7 @@ scene('manifesto', 2.0, 4.0, 2, root => {
   const WORDS = [
     { t0: 2.0, text: 'DESIGN', bg: C.paper, fg: C.ink, dot: C.blue, n: '01', cap: 'type · motion · systems' },
     { t0: 2.5, text: 'BUILD', bg: C.blue, fg: C.paper, dot: C.ink, n: '02', cap: 'React · Vite · Python · Lua' },
-    { t0: 3.0, text: 'SECURE', bg: C.ink, fg: C.paper, dot: C.blueHi, n: '03', cap: '277 detectors · 24 ecosystems' },
+    { t0: 3.0, text: 'SECURE', bg: C.ink, fg: C.paper, dot: C.gold, n: '03', cap: '277 detectors · 24 ecosystems' },
     { t0: 3.5, text: 'SHIP', bg: C.paper, fg: C.ink, dot: C.blue, n: '04', cap: '7+ yrs · Airbus ecosystem · EU · China · APAC' },
   ]
   const wordCss = fg => `left:0;right:0;top:318px;text-align:center;font-size:330px;font-weight:700;line-height:1;letter-spacing:-.055em;color:${fg};white-space:nowrap`
@@ -179,7 +210,7 @@ scene('manifesto', 2.0, 4.0, 2, root => {
       })
       w.box.remove()
       w.layers.forEach((lay, k) => { lay.dot = h('span', { css: `display:inline-block;width:.17em;height:.17em;border-radius:50%;background:${k === 2 ? w.dot : 'currentColor'};margin-left:.03em` }, lay.el) })
-      w.scan = h('div', { cls: 'abs', css: `left:0;right:0;height:3px;background:${C.blueHi};box-shadow:0 0 30px 8px rgba(61,107,255,.55)` }, w.el)
+      w.scan = h('div', { cls: 'abs', css: `left:0;right:0;height:3px;background:${C.blueHi};box-shadow:0 0 30px 8px rgba(122,219,250,.5)` }, w.el)
       w.dotEl = w.layers[2].dot
     } else {
       w.L = chars(w.box, w.text, w.text === 'DESIGN')
@@ -294,9 +325,9 @@ scene('donatello', 4.0, 8.0, 3, root => {
   const ink = h('div', { cls: 'fill dotgrid', css: `background-color:${C.ink}` }, root)
   const rings = [0, 1, 2].map(() => h('div', { cls: 'abs', css: `left:960px;top:540px;width:0;height:0;border-radius:50%;border:2px solid ${C.blueHi}` }, root))
   const head = h('div', { cls: 'abs', css: 'left:150px;top:112px' }, ink)
-  const title = h('div', { cls: 'disp', css: 'font-size:50px;font-weight:700;letter-spacing:-.02em;overflow:hidden', html: `<span style="display:inline-block"><span style="color:${C.blueHi}">◆</span> DONATELLO</span>` }, head)
+  const title = h('div', { cls: 'disp', css: 'font-size:50px;font-weight:700;letter-spacing:-.02em;overflow:hidden', html: `<span style="display:inline-block"><span style="color:${C.gold}">◆</span> DONATELLO</span>` }, head)
   const sub = h('div', { cls: 'mono', css: `font-size:18px;letter-spacing:.2em;color:${C.muted};margin-top:10px;white-space:pre`, text: 'MULTI-CHAIN SMART-CONTRACT SECURITY SCANNER' }, head)
-  const stack = h('div', { cls: 'abs mono', css: `right:150px;top:128px;font-size:16px;letter-spacing:.16em;color:${C.muted};border:1px solid #2a2d36;border-radius:999px;padding:10px 18px`, text: 'PYTHON · SLITHER · Z3 · CTF HARNESS' }, ink)
+  const stack = h('div', { cls: 'abs mono', css: `right:150px;top:128px;font-size:16px;letter-spacing:.16em;color:${C.muted};border:1px solid rgba(209,154,69,.4);border-radius:999px;padding:10px 18px`, text: 'PYTHON · SLITHER · Z3 · CTF HARNESS' }, ink)
 
   // code panel
   const group = h('div', { cls: 'fill' }, ink)
@@ -313,24 +344,24 @@ scene('donatello', 4.0, 8.0, 3, root => {
     for (const [s, c] of tokens(src)) for (const ch of s) codeChars.push({ el: h('span', { cls: 'tok-' + c, text: ch }, ln), li })
     lines.push({ ln, hl })
   })
-  CODE.forEach((_, li) => h('div', { cls: 'abs mono', css: `left:0;width:56px;top:${li * 52}px;text-align:right;font-size:22px;line-height:52px;color:#4A4E5A`, text: li + 1 }, body))
+  CODE.forEach((_, li) => h('div', { cls: 'abs mono', css: `left:0;width:56px;top:${li * 52}px;text-align:right;font-size:22px;line-height:52px;color:#3C4466`, text: li + 1 }, body))
   const tcaret = h('div', { cls: 'abs', css: `width:14px;height:30px;background:${C.blueHi}` }, body)
-  const beam = h('div', { cls: 'abs', css: 'left:0;right:0;height:140px;background:linear-gradient(180deg,transparent,rgba(61,107,255,.22) 46%,rgba(120,150,255,.95) 50%,rgba(61,107,255,.22) 54%,transparent)' }, panel)
+  const beam = h('div', { cls: 'abs', css: 'left:0;right:0;height:140px;background:linear-gradient(180deg,transparent,rgba(122,219,250,.18) 46%,rgba(190,240,255,.95) 50%,rgba(122,219,250,.18) 54%,transparent)' }, panel)
 
   // finding card (flips to PASS once the fix lands)
   const card = h('div', { cls: 'card3d', css: 'left:1170px;top:300px;width:600px;height:392px' }, group)
   const face = (bg, border) => h('div', { cls: 'face', css: `background:${bg};border:1px solid ${border}` }, card)
-  const front = face('#15161B', 'rgba(229,72,77,.5)'), back = face('#0E1813', 'rgba(61,214,140,.5)')
+  const front = face(C.panel, 'rgba(229,72,77,.55)'), back = face('#06140F', 'rgba(61,214,140,.55)')
   back.style.transform = 'rotateY(180deg)'
   const pill = (bg, txt) => `<span class="pill mono" style="background:${bg};color:${C.ink};font-weight:700;font-size:16px;letter-spacing:.12em;padding:7px 14px">${txt}</span>`
   front.innerHTML = `<div style="display:flex;align-items:center;gap:16px">${pill(C.red, 'HIGH')}<span class="mono" style="font-size:17px;letter-spacing:.14em;color:${C.muted}">E1 · REENTRANCY</span></div>
     <div class="disp" style="font-size:42px;font-weight:600;line-height:1.08;margin-top:26px;letter-spacing:-.015em">State mutated after an external call</div>
-    <div style="font-size:21px;line-height:1.45;color:#A3A8B6;margin-top:16px">Checks-effects-interactions violated — withdraw() can be re-entered and drained.</div>
-    <div class="mono abs" style="left:38px;bottom:28px;font-size:14px;letter-spacing:.16em;color:#5C6170">DONATELLO · DETECTOR E1 · EVM</div>`
+    <div style="font-size:21px;line-height:1.45;color:#A9B4C7;margin-top:16px">Checks-effects-interactions violated — withdraw() can be re-entered and drained.</div>
+    <div class="mono abs" style="left:38px;bottom:28px;font-size:14px;letter-spacing:.16em;color:#5C6485">DONATELLO · DETECTOR E1 · EVM</div>`
   back.innerHTML = `<div style="display:flex;align-items:center;gap:16px">${pill(C.green, 'PASS')}<span class="mono" style="font-size:17px;letter-spacing:.14em;color:${C.muted}">E1 · RESOLVED</span></div>
     <div class="disp" style="font-size:42px;font-weight:600;line-height:1.08;margin-top:26px;letter-spacing:-.015em">Checks → Effects → Interactions</div>
-    <div style="font-size:21px;line-height:1.45;color:#A3B6AC;margin-top:16px">State is written before the call. 0 findings, regression-locked.</div>
-    <div class="mono abs" style="left:38px;bottom:28px;font-size:14px;letter-spacing:.16em;color:#5C6F66">CTF-VALIDATED · REGRESSION-LOCKED</div>`
+    <div style="font-size:21px;line-height:1.45;color:#A9C7B8;margin-top:16px">State is written before the call. 0 findings, regression-locked.</div>
+    <div class="mono abs" style="left:38px;bottom:28px;font-size:14px;letter-spacing:.16em;color:#5C7A6C">CTF-VALIDATED · REGRESSION-LOCKED</div>`
   const svg = sv('svg', { width: W, height: H, style: 'position:absolute;left:0;top:0;overflow:visible' }, group)
   const conn = sv('path', { fill: 'none', stroke: C.red, 'stroke-width': 2.5, pathLength: 1, 'stroke-dasharray': 1 }, svg)
   const connDot = sv('circle', { r: 6, fill: C.red }, svg)
@@ -347,20 +378,20 @@ scene('donatello', 4.0, 8.0, 3, root => {
   const bigCols = mkCols(big, '277')
   const lab1 = h('div', { cls: 'abs disp', css: 'left:880px;top:318px;font-size:92px;font-weight:700;letter-spacing:-.03em;overflow:hidden;line-height:1.05', html: '<div>DETECTORS</div>' }, counter)
   const lab1s = h('div', { cls: 'abs mono', css: `left:884px;top:430px;font-size:19px;letter-spacing:.2em;color:${C.muted};white-space:pre`, text: 'CTF-VALIDATED · REGRESSION-LOCKED' }, counter)
-  const small = roll(counter, '24', 170, C.blueHi, 870, 492)
+  const small = roll(counter, '24', 170, C.gold, 870, 492)
   const smallCols = mkCols(small, '24')
   const lab2 = h('div', { cls: 'abs disp', css: 'left:1100px;top:548px;font-size:64px;font-weight:600;letter-spacing:-.02em;overflow:hidden;line-height:1.1', html: '<div>ECOSYSTEMS</div>' }, counter)
-  const crule = h('div', { cls: 'abs', css: 'left:150px;top:730px;width:1620px;height:2px;background:rgba(255,255,255,.14);transform-origin:0 50%' }, counter)
+  const crule = h('div', { cls: 'abs', css: 'left:150px;top:730px;width:1620px;height:2px;background:rgba(169,180,199,.18);transform-origin:0 50%' }, counter)
 
   // ecosystem chips → bar chart
   const chartTitle = h('div', { cls: 'abs mono', css: `left:150px;top:300px;font-size:19px;letter-spacing:.2em;color:${C.muted};white-space:pre`, text: 'DETECTORS PER ECOSYSTEM — 24 KITS' }, ink)
-  const base = h('div', { cls: 'abs', css: 'left:150px;top:900px;width:1620px;height:2px;background:rgba(255,255,255,.3);transform-origin:0 50%' }, ink)
+  const base = h('div', { cls: 'abs', css: 'left:150px;top:900px;width:1620px;height:2px;background:rgba(169,180,199,.35);transform-origin:0 50%' }, ink)
   const sorted = ECOSYSTEMS.map((e, i) => ({ e, i })).sort((a, b) => b.e[1] - a.e[1])
   const chips = ECOSYSTEMS.map(([name, n], i) => {
     const col = i % 8, row = Math.floor(i / 8)
     const g = { x: 150 + col * (190 + 14.3), y: 360 + row * (118 + 18), w: 190, h: 118 }
-    const el = h('div', { cls: 'abs', css: 'border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.14);transform-origin:50% 100%;overflow:visible' }, ink)
-    const fill = h('div', { cls: 'fill', css: 'border-radius:inherit;background:linear-gradient(180deg,#5A82FF,#1D4ED8);opacity:0' }, el)
+    const el = h('div', { cls: 'abs', css: 'border-radius:12px;background:rgba(10,12,34,.88);border:1px solid rgba(209,154,69,.38);transform-origin:50% 100%;overflow:visible' }, ink)
+    const fill = h('div', { cls: 'fill', css: 'border-radius:inherit;background:linear-gradient(180deg,#7ADBFA,#08218E);opacity:0' }, el)
     const face = h('div', { cls: 'fill', css: 'padding:16px 18px;box-sizing:border-box' }, el)
     h('div', { cls: 'disp', css: 'font-size:25px;font-weight:600;letter-spacing:-.01em;white-space:nowrap', text: name }, face)
     h('div', { cls: 'mono', css: `font-size:17px;color:${C.blueHi};margin-top:6px`, text: `${String(n).padStart(2, '0')} det.` }, face)
@@ -614,7 +645,7 @@ scene('cafebong', 12.0, 13.5, 6, root => {
   const arch = h('div', { cls: 'abs', css: 'left:250px;top:170px;width:540px;height:740px;border-radius:270px 270px 20px 20px;overflow:hidden;background:#C4502A;box-shadow:0 40px 90px rgba(0,0,0,.45)' }, root)
   const cv = h('canvas', {}, arch); cv.width = 540; cv.height = 740
   const ctx = cv.getContext('2d')
-  const frames = Array.from({ length: 60 }, (_, i) => { const im = new Image(); im.src = `assets/media/phin/${String(i + 1).padStart(3, '0')}.jpg`; imgs.push(im); return im })
+  const frames = Array.from({ length: 80 }, (_, i) => { const im = new Image(); im.src = `assets/media/phin/${String(i + 1).padStart(3, '0')}.jpg`; imgs.push(im); return im })
   const txt = h('div', { cls: 'abs', css: 'left:910px;top:268px;width:900px' }, root)
   const lab = h('div', { cls: 'mono', css: 'font-size:17px;letter-spacing:.22em;color:#E0A15A;white-space:pre', text: 'CAFÉ BÔNG — TOULOUSE · 11 RUE DE LA BOURSE' }, txt)
   const line = (text, italic, color) => {
@@ -638,7 +669,7 @@ scene('cafebong', 12.0, 13.5, 6, root => {
       const rv = tw(t, 12.0, 0.45)
       arch.style.clipPath = `inset(${(1 - rv) * 100}% 0 0 0 round 270px 270px 20px 20px)`
       O(outline, tw(t, 12.25, 0.4)); T(outline, `translate(${(1 - tw(t, 12.25, 0.5)) * -18}px,${(1 - tw(t, 12.25, 0.5)) * 18}px)`)
-      const fr = frames[Math.min(59, Math.floor(lt * 30))]
+      const fr = frames[Math.min(79, Math.floor(lt / SLOW * 30))]
       const s = lerp(1.18, 1.0, tw(t, 12.0, 1.5, E.out)) * 740 / 608
       ctx.fillStyle = '#C4502A'; ctx.fillRect(0, 0, 540, 740)
       if (fr.complete && fr.naturalWidth) ctx.drawImage(fr, 270 - 304 * s, 370 - 304 * s, 608 * s, 608 * s)
@@ -663,34 +694,332 @@ scene('cafebong', 12.0, 13.5, 6, root => {
   }
 })
 
-// 06 ─ GIDEON + PLANS & AMBIANCES ───────────────────────── 13.5 → 15.5
-scene('systems', 13.5, 15.5, 7, root => {
-  root.style.background = C.ink
+// 06 ─ GIDEON — a case study told the forward-deployed way ──── master G0 → G1 + 1.25
+// Timed in MASTER seconds on the 72 BPM grid. Every claim on screen comes from the
+// GideonRaid README (BathmanTv/Gideon); the orb pictures are the addon's own textures.
+scene('gideon', G0, G1 + 1.25, 6, root => {
+  root.style.background = C.night
+  h('div', { cls: 'fill', css: 'background:radial-gradient(ellipse 60% 55% at 74% 40%,rgba(8,33,142,.5),transparent 70%)' }, root)
   h('div', { cls: 'fill dotgrid' }, root)
-  const CX = 960, CY = 560
-  const glow = h('div', { cls: 'abs', css: `left:${CX - 330}px;top:${CY - 330}px;width:660px;height:660px;border-radius:50%;background:radial-gradient(circle,rgba(61,107,255,.42),transparent 62%)` }, root)
-  const esvg = sv('svg', { width: W, height: H, style: 'position:absolute;left:0;top:0' }, root)
-  const NODES = [['Discord roster', 205], ['VPS · Lua 5.1', 180], ['Pairing engine', 155], ['SavedVariables', -25], ['GideonRaid addon', 0], ['Intermission Coach', 25]]
-  const nodes = NODES.map(([label, a], i) => {
-    const x = CX + 560 * Math.cos(a * Math.PI / 180), y = CY + 290 * Math.sin(a * Math.PI / 180)
-    const line = sv('line', { x1: CX, y1: CY, x2: x, y2: y, stroke: 'rgba(61,107,255,.7)', 'stroke-width': 1.6, pathLength: 1, 'stroke-dasharray': 1 }, esvg)
-    const pulses = [0, 1].map(() => sv('circle', { r: 4.5, fill: '#9FB4FF' }, esvg))
-    const el = h('div', { cls: 'abs mono pill', css: `left:${x}px;top:${y}px;background:#121317;border:1px solid rgba(255,255,255,.16);padding:13px 22px;font-size:20px;gap:12px;white-space:nowrap;color:${C.paper}`, html: `<i style="width:9px;height:9px;border-radius:50%;background:${C.blueHi};display:inline-block"></i>${label}` }, root)
-    return { x, y, line, pulses, el, i }
+  const CH = [27, 30, 33, 37, 40, 43, 47].map(bt)   // chapter boundaries, master seconds
+  const STEPS = ['DISCOVER', 'CONSTRAINT', 'ARCHITECT', 'BUILD', 'SHIP', 'REPEAT']
+  const head = h('div', { cls: 'abs mono', css: `left:150px;top:100px;font-size:16px;letter-spacing:.24em;color:${C.gold};white-space:pre;overflow:hidden`, html: '<div>CASE STUDY — GIDEON · A FORWARD-DEPLOYED BUILD</div>' }, root)
+  const stepper = h('div', { cls: 'abs mono', css: 'right:150px;top:100px;display:flex;gap:24px;font-size:14px;letter-spacing:.14em' }, root)
+  const steps = STEPS.map((s, i) => {
+    const el = h('div', { css: 'position:relative;padding-bottom:12px;white-space:pre', text: `0${i + 1} ${s}` }, stepper)
+    const bar = h('i', { css: `position:absolute;left:0;right:0;bottom:0;height:2px;background:${C.gold};transform-origin:0 50%;transform:scaleX(0)` }, el)
+    return { el, bar }
   })
-  const hub = h('div', { cls: 'abs', css: `left:${CX - 310}px;top:${CY - 310}px;width:620px;height:620px` }, root)
-  const rsvg = sv('svg', { width: 620, height: 620, style: 'position:absolute;left:0;top:0;overflow:visible' }, hub)
-  const r1 = sv('circle', { cx: 310, cy: 310, r: 214, fill: 'none', stroke: C.blueHi, 'stroke-width': 2, 'stroke-dasharray': '3 9' }, rsvg)
-  const r2 = sv('circle', { cx: 310, cy: 310, r: 246, fill: 'none', stroke: 'rgba(255,255,255,.28)', 'stroke-width': 1.5, 'stroke-dasharray': '80 18 6 18' }, rsvg)
-  const face = I('img/gideon.webp', hub, 'position:absolute;left:125px;top:125px;width:370px;height:370px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(61,107,255,.7),0 0 80px rgba(61,107,255,.5)')
-  const head = h('div', { cls: 'abs', css: 'left:150px;top:108px' }, root)
-  const ttl = h('div', { cls: 'disp', css: 'font-size:84px;font-weight:700;letter-spacing:-.035em;overflow:hidden;line-height:1.05', html: '<div>GIDEON</div>' }, head)
-  const sub = h('div', { cls: 'mono', css: `font-size:18px;letter-spacing:.2em;color:${C.muted};margin-top:8px;white-space:pre`, text: 'DISCORD ORCHESTRATOR · RAID COACH · WOW MIDNIGHT' }, head)
-  const LOG = ['› roster     Discord → pairing_cli.lua', '› pairs      computed out of game  ✓', '› deliver    SavedVariables → addon']
-  const log = h('div', { cls: 'abs mono', css: `left:150px;top:858px;font-size:19px;line-height:32px;color:${C.muted};white-space:pre` }, root)
+  const rule = h('div', { cls: 'abs', css: 'left:150px;right:150px;top:152px;height:1px;background:rgba(169,180,199,.16);transform-origin:0 50%' }, root)
+  const ruleFill = h('div', { cls: 'abs', css: `left:0;top:0;bottom:0;width:100%;background:${C.gold};transform-origin:0 50%;transform:scaleX(0)` }, rule)
+  const layers = STEPS.map(() => h('div', { cls: 'fill' }, root))
+  const kicker = (L, text) => h('div', { cls: 'abs mono', css: `left:150px;top:196px;font-size:18px;letter-spacing:.22em;color:${C.gold};white-space:pre`, text }, L)
+  const title = (L, text, css = '') => words(h('div', { cls: 'abs disp', css: `left:150px;top:238px;font-size:66px;font-weight:700;line-height:1.02;letter-spacing:-.03em;color:${C.paper};${css}` }, L), text)
+  const rise = (els, t, t0, st = 0.04, d = 0.55) => els.forEach((w, j) => T(w, `translateY(${(1 - tw(t, t0 + j * st, d)) * 118}%)`))
+  const fade = (el, t, t0, d = 0.45, dy = 26) => { const p = tw(t, t0, d); O(el, p); T(el, `translateY(${(1 - p) * dy}px)`) }
+  const pop = (el, t, t0, f = 2.4, z = 0.5) => { const p = spring(t - t0, f, z); T(el, `scale(${Math.max(0, p)})`); O(el, clamp((t - t0) * 8)) }
 
+  // 01 DISCOVER — the users' problem, with the addon's own orb screenshots
+  const c1 = (() => {
+    const L = layers[0]
+    const k = kicker(L, '01 — DISCOVER · A RAID GUILD OF ~25 PLAYERS')
+    const ttl = title(L, 'Make 4 green + 4 red.\nAnything else wipes.', 'width:860px')
+    const body = h('div', { cls: 'abs', css: `left:150px;top:436px;width:720px;font-size:26px;line-height:1.5;color:${C.gMuted}`, html:
+      `Each player carries <b style="color:#fff">3 green + 1 red</b>, <b style="color:#fff">2 + 2</b> or <b style="color:#fff">1 + 3</b> orbs and pairs up with a partner. After 3 s the room goes dark — everyone sees only their own orbs.` }, L)
+    const EQ = [['3v1r', '1v3r', '4 green + 4 red', true], ['2v2r', '2v2r', '4 green + 4 red', true], ['3v1r', '2v2r', '5 green — wipe', false]]
+    const rows = EQ.map(([a, b, res, ok], r) => {
+      const card = h('div', { cls: 'gcard', css: `left:990px;top:${226 + r * 212}px;width:780px;height:192px;display:flex;align-items:center;padding:0 26px;gap:18px` }, L)
+      I(`gideon/${a}.png`, card, 'width:168px;height:auto')
+      h('div', { cls: 'disp', css: `font-size:44px;font-weight:500;color:${C.gMuted}`, text: '+' }, card)
+      I(`gideon/${b}.png`, card, 'width:168px;height:auto')
+      h('div', { cls: 'disp', css: `font-size:44px;font-weight:500;color:${C.gMuted}`, text: '=' }, card)
+      const out = h('div', { cls: 'disp', css: `font-size:30px;font-weight:600;line-height:1.1;color:${ok ? C.cyan : C.red};white-space:nowrap`, html: `${ok ? '✓' : '✗'}&nbsp;${res}` }, card)
+      return { card, out, ok, t0: bt(27.85) + r * 0.3 }
+    })
+    return {
+      render(t) {
+        fade(k, t, CH[0]); rise(ttl, t, CH[0] + 0.08)
+        fade(body, t, CH[0] + 0.45)
+        rows.forEach(r => {
+          const p = spring(t - r.t0, 2.1, 0.55)
+          const s = t - (r.t0 + 0.32)
+          const shake = !r.ok && s > 0 && s < 0.4 ? Math.sin(s * 70) * 10 * (1 - s / 0.4) : 0
+          T(r.card, `translateX(${(1 - p) * 140 + shake}px)`); O(r.card, clamp((t - r.t0) * 5))
+          const po = tw(t, r.t0 + 0.32, 0.3)
+          O(r.out, po); T(r.out, `translateX(${(1 - po) * 20}px)`)
+          if (!r.ok) {
+            r.card.style.borderColor = s > 0 ? C.red : C.gold
+            r.card.style.background = s > 0 ? `rgba(229,72,77,${0.04 + 0.1 * (1 - clamp(s / 1.2))})` : C.panel
+          }
+        })
+      },
+    }
+  })()
+
+  // 02 CONSTRAINT — patch 12.0 "Secret Values" breaks the classic raid-addon approach
+  const c2 = (() => {
+    const L = layers[1]
+    const k = kicker(L, '02 — CONSTRAINT · PATCH 12.0 “SECRET VALUES”')
+    const ttl = title(L, 'The game client can no\nlonger compute it.', 'width:1000px')
+    const code = h('div', { cls: 'term', css: 'left:1210px;top:206px;width:560px;height:150px' }, L)
+    code.innerHTML = `<div class="tb"><i></i><i></i><i></i>&nbsp; in combat · 12.x</div>
+      <div class="tl" style="margin-top:22px;font-size:28px"><span style="color:${C.cyan}">if</span> aura <span style="color:#6F7890">&gt;</span> <span style="color:${C.goldHi}">0</span> <span style="color:${C.cyan}">then</span></div>`
+    const squig = h('div', { cls: 'abs', css: `left:24px;top:112px;width:258px;height:4px;background:repeating-linear-gradient(90deg,${C.red} 0 6px,transparent 6px 10px);transform-origin:0 50%;transform:scaleX(0)` }, code)
+    const err = h('div', { cls: 'abs mono pill', css: `left:1210px;top:378px;background:${C.red};color:#fff;font-size:17px;font-weight:700;letter-spacing:.1em;padding:9px 16px;transform-origin:0 50%`, text: '✗ IMMEDIATE LUA ERROR' }, L)
+    const ROWS = [
+      ['Read other players’ auras (UnitAura)', 'secret value → Lua error'],
+      ['Listen to COMBAT_LOG_EVENT', 'registering it raises an error'],
+      ['Addon → addon messages in an instance', 'no channel any more'],
+    ]
+    const rows = ROWS.map(([a, b], r) => {
+      const y = 492 + r * 112
+      const txt = h('div', { cls: 'abs', css: `left:150px;top:${y}px;font-size:32px;font-weight:500;color:#fff;white-space:nowrap`, text: a }, L)
+      const strike = h('div', { cls: 'abs', css: `left:144px;top:${y + 22}px;height:3px;background:${C.red};transform-origin:0 50%;transform:scaleX(0)` }, L)
+      const arrow = h('div', { cls: 'abs mono', css: `left:1010px;top:${y + 2}px;font-size:28px;color:${C.gMuted}`, text: '→' }, L)
+      const chip = h('div', { cls: 'abs mono pill', css: `left:1070px;top:${y - 4}px;border:1px solid ${C.red};background:rgba(229,72,77,.12);color:#FF8A8D;font-size:19px;letter-spacing:.06em;padding:10px 18px;white-space:nowrap;transform-origin:0 50%`, text: b }, L)
+      return { txt, strike, arrow, chip, t0: bt(30.75) + r * 0.32 }
+    })
+    const concl = h('div', { cls: 'abs disp', css: `left:150px;top:840px;font-size:40px;font-weight:600;color:${C.goldHi}`, text: '→ So the pairing is computed out of game.' }, L)
+    let widths = []
+    return {
+      layout() { widths = rows.map(r => r.txt.offsetWidth + 12) },
+      render(t) {
+        fade(k, t, CH[1]); rise(ttl, t, CH[1] + 0.08)
+        fade(code, t, CH[1] + 0.3)
+        const e = t - (CH[1] + 0.66)
+        T(squig, `scaleX(${tw(t, CH[1] + 0.56, 0.18)})`)
+        code.style.borderColor = e > 0 ? C.red : 'rgba(209,154,69,.35)'
+        code.style.translate = e > 0 && e < 0.25 ? `${(rnd(Math.floor(t * 60)) - 0.5) * 18}px 0` : '0 0'
+        V(err, e > 0); T(err, `scale(${Math.max(0, spring(e, 3, 0.4))})`)
+        rows.forEach((r, i) => {
+          fade(r.txt, t, r.t0, 0.4, 20)
+          r.txt.style.color = t > r.t0 + 0.42 ? 'rgba(255,255,255,.45)' : '#fff'
+          r.strike.style.width = widths[i] + 'px'
+          T(r.strike, `scaleX(${tw(t, r.t0 + 0.26, 0.24, E.io)})`)
+          O(r.arrow, tw(t, r.t0 + 0.34, 0.25))
+          pop(r.chip, t, r.t0 + 0.4, 2.6, 0.5)
+        })
+        fade(concl, t, bt(32.05), 0.45, 24)
+      },
+    }
+  })()
+
+  // 03 ARCHITECT — the README's pipeline, drawn and running
+  const c3 = (() => {
+    const L = layers[2]
+    const k = kicker(L, '03 — ARCHITECT · COMPUTE OUT OF GAME, READ IN GAME')
+    const ttl = title(L, 'GIDEON computes.\nThe addon only reads.', 'width:1000px')
+    const band = (top, hh, label) => [
+      h('div', { cls: 'abs', css: `left:130px;top:${top}px;width:1660px;height:${hh}px;border-radius:18px;background:rgba(8,33,142,.16);border:1px solid rgba(169,180,199,.12)` }, L),
+      h('div', { cls: 'abs mono', css: `left:150px;top:${top - 30}px;font-size:15px;letter-spacing:.22em;color:${C.gold};white-space:pre`, text: label }, L),
+    ]
+    const bands = [band(468, 190, 'OUT OF GAME · VPS'), band(718, 180, 'IN GAME · WOW CLIENT')].flat()
+    const svg = sv('svg', { width: W, height: H, style: 'position:absolute;left:0;top:0;overflow:visible' }, L)
+    const node = (css, html) => h('div', { cls: 'gcard', css: `${css};display:flex;flex-direction:column;justify-content:center;padding:0 24px`, html }, L)
+    const sub = s => `<div class="mono" style="font-size:14px;letter-spacing:.16em;color:${C.gMuted};margin-top:8px">${s}</div>`
+    const A = node('left:180px;top:508px;width:300px;height:110px', `<div class="disp" style="font-size:28px;font-weight:600;color:#fff">Discord roster</div>${sub('INPUT')}`)
+    const B = h('div', { cls: 'abs', css: 'left:700px;top:490px;width:124px;height:124px' }, L)
+    I('img/gideon.webp', B, `width:124px;height:124px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px ${C.gold},0 0 50px rgba(122,219,250,.35)`)
+    h('div', { cls: 'abs mono', css: `left:-40px;width:204px;top:130px;text-align:center;font-size:14px;letter-spacing:.18em;color:${C.gold}`, text: 'GIDEON · VPS' }, B)
+    const Cn = node('left:1010px;top:508px;width:440px;height:110px', `<div class="mono" style="font-size:24px;color:#fff">lua5.1 pairing_cli.lua</div>${sub('DETERMINISTIC PAIRS')}`)
+    const D = node('left:1330px;top:752px;width:430px;height:112px', `<div class="mono" style="font-size:21px;color:#fff">SavedVariables/GideonRaid.lua</div>${sub('STRINGS — NEVER SECRET')}`)
+    const Ek = node('left:1010px;top:770px;width:190px;height:76px;align-items:center;padding:0', `<div class="mono" style="font-size:26px;color:#fff">/reload</div>`)
+    const F = node('left:180px;top:752px;width:470px;height:112px', `<div style="display:flex;align-items:center;gap:14px"><div><div class="disp" style="font-size:28px;font-weight:600;color:#fff">GideonRaid</div>${sub('DISPLAYS THE PAIRS')}</div>
+      <div style="margin-left:auto;display:flex;gap:6px">${['3v1r', '2v2r', '1v3r'].map(s => `<img src="assets/gideon/${s}.png" style="width:52px">`).join('')}</div></div>`)
+    const NODES = [A, B, Cn, D, Ek, F]
+    const PATHS = ['M480 563 H700', 'M824 552 H1010', 'M1450 563 H1545 V752', 'M1330 808 H1200', 'M1010 808 H650']
+    const edges = PATHS.map(d => {
+      const p = sv('path', { d, fill: 'none', stroke: C.cyan, 'stroke-width': 2, 'stroke-opacity': 0.75, pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1 }, svg)
+      const dots = [0, 1].map(() => sv('circle', { r: 5, fill: C.cyan }, svg))
+      return { p, dots, len: 0 }
+    })
+    const NT = [27.92, 28.25, 28.55, 28.95, 29.22, 29.5]          // node pops (master s)
+    const ET = [28.05, 28.4, 28.72, 29.1, 29.36]                  // edge draws
+    const chip = h('div', { cls: 'gcard', css: `left:150px;top:914px;height:54px;display:flex;align-items:center;padding:0 22px;white-space:nowrap;font:400 17px var(--mono);color:#fff`,
+      html: `<span style="color:${C.gold}">Core/Pairing.lua</span>&nbsp;·&nbsp;the same pure Lua 5.1 file runs on the VPS and in the client → identical pairs` }, L)
+    return {
+      layout() { edges.forEach(e => { e.len = e.p.getTotalLength() }) },
+      render(t) {
+        fade(k, t, CH[2]); rise(ttl, t, CH[2] + 0.08)
+        bands.forEach(b => O(b, tw(t, CH[2] + 0.25, 0.4)))
+        NODES.forEach((n, i) => pop(n, t, NT[i]))
+        edges.forEach((e, i) => {
+          draw(e.p, tw(t, ET[i], 0.22))
+          e.dots.forEach((c, j) => {
+            const u = ((t - 29.6) * 0.8 + j * 0.5 + i * 0.17) % 1
+            V(c, t > 29.6)
+            if (t > 29.6 && e.len) { const pt = e.p.getPointAtLength(u * e.len); c.setAttribute('cx', pt.x); c.setAttribute('cy', pt.y); c.setAttribute('opacity', Math.sin(u * Math.PI)) }
+          })
+        })
+        fade(chip, t, 29.75, 0.45, 16)
+      },
+    }
+  })()
+
+  // 04 BUILD — the real CLI output and the single exit gate (README reference run)
+  const c4 = (() => {
+    const L = layers[3]
+    const k = kicker(L, '04 — BUILD · TESTED OUT OF GAME, EVERY CHANGE')
+    const ttl = title(L, 'Deterministic. Linted. 398 tests.', 'width:1620px')
+    const termBox = (left, width, label) => {
+      const el = h('div', { cls: 'term', css: `left:${left}px;top:372px;width:${width}px;height:470px` }, L)
+      el.innerHTML = `<div class="tb"><i></i><i></i><i></i>&nbsp; ${label}</div>`
+      return el
+    }
+    const t1 = termBox(150, 800, '~/gideon — pairing')
+    const cmd1 = h('div', { cls: 'tl', css: 'margin-top:16px;color:#fff' }, t1)
+    const CMD1 = '$ lua5.1 tools/pairing_cli.lua < tools/sample_roster.csv'
+    const PAIRS = ['Bren|Aster', 'Coren|Bathman', 'Ilya|Dorian', 'Kaela|Halda', 'Mira|Lumen', 'Rukh|Nyx', 'Serka|Ordan', 'Sylvia|Pax', 'Velna|Torgh', 'Zerun|Vaelen']
+    const pairEls = PAIRS.map((p, i) => h('div', { cls: 'abs mono', css: `left:${24 + (i >= 5 ? 300 : 0)}px;top:${128 + (i % 5) * 34}px;font-size:20px;white-space:pre;color:#fff`,
+      html: p.replace('|', `<span style="color:${C.gold}">|</span>`) }, t1))
+    const note = h('div', { cls: 'abs mono', css: `left:24px;top:318px;font-size:18px;color:${C.gMuted};white-space:pre`, text: '# deterministic — same roster, same pairs (diff-able)' }, t1)
+    const t2 = termBox(990, 780, '~/gideon — single exit gate')
+    const cmd2 = h('div', { cls: 'tl', css: 'margin-top:16px;color:#fff' }, t2)
+    const CHECKS = [['stylua --check .', ''], ['luacheck .', '0 warnings / 0 errors in 32 files'], ['check_toc', 'OK GideonRaid.toc'], ['busted', '']]
+    const checkEls = CHECKS.map(([a, b], i) => h('div', { cls: 'abs mono', css: `left:24px;top:${128 + i * 40}px;font-size:20px;white-space:pre;color:#CBD3E1`,
+      html: `<span style="color:${C.green}">✓</span> ${a.padEnd(17)}<span style="color:${C.gMuted}">${b}</span>` }, t2))
+    const busted = checkEls[3].lastChild
+    const pass = h('div', { cls: 'abs mono pill', css: `left:24px;top:318px;background:rgba(61,214,140,.12);border:1px solid ${C.green};color:${C.green};font-size:18px;letter-spacing:.12em;padding:10px 18px;transform-origin:0 50%`, text: '✓ MAKE CHECK — ALL GREEN' }, t2)
+    const type = (el, text, t, t0, d) => { const n = Math.floor(text.length * tw(t, t0, d, E.lin)); el.textContent = text.slice(0, n) + (n > 0 && n < text.length ? '_' : '') }
+    return {
+      render(t) {
+        fade(k, t, CH[3]); rise(ttl, t, CH[3] + 0.08, 0.05)
+        fade(t1, t, CH[3] + 0.12, 0.45, 30); fade(t2, t, CH[3] + 0.24, 0.45, 30)
+        type(cmd1, CMD1, t, CH[3] + 0.3, 0.5)
+        pairEls.forEach((el, i) => O(el, tw(t, CH[3] + 0.85 + i * 0.045, 0.15)))
+        O(note, tw(t, CH[3] + 1.4, 0.3))
+        type(cmd2, '$ make check', t, CH[3] + 0.45, 0.22)
+        checkEls.forEach((el, i) => O(el, tw(t, CH[3] + 0.75 + i * 0.18, 0.15)))
+        busted.textContent = `${Math.round(398 * tw(t, CH[3] + 1.29, 0.55))} successes / 0 failures`
+        pop(pass, t, CH[3] + 1.85, 2.6, 0.5)
+      },
+    }
+  })()
+
+  // 05 SHIP — delivered where the players already are, then used in game
+  const c5 = (() => {
+    const L = layers[4]
+    const k = kicker(L, '05 — SHIP · WHERE THE PLAYERS ALREADY ARE')
+    const ttl = title(L, 'One Discord post.\nZero accounts for players.', 'width:1000px')
+    const chat = h('div', { cls: 'abs', css: `left:150px;top:470px;width:840px;height:330px;border-radius:16px;background:${C.panel};border:1px solid rgba(169,180,199,.18);box-shadow:0 30px 80px rgba(0,0,0,.45)` }, L)
+    h('div', { cls: 'mono', css: `height:52px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid rgba(169,180,199,.12);font-size:18px;color:${C.gMuted};white-space:pre`, text: '#  addons' }, chat)
+    const msg = h('div', { cls: 'abs', css: 'left:24px;top:76px;right:24px' }, chat)
+    I('img/gideon.webp', msg, 'position:absolute;left:0;top:0;width:60px;height:60px;border-radius:50%;object-fit:cover')
+    h('div', { css: 'margin-left:80px;display:flex;align-items:center;gap:10px', html: `<span class="disp" style="font-size:26px;font-weight:600;color:#fff">GIDEON</span><span class="mono" style="font-size:12px;letter-spacing:.1em;background:${C.royal};color:${C.cyan};padding:3px 7px;border-radius:4px">BOT</span>` }, msg)
+    const text = h('div', { css: 'margin-left:80px;margin-top:6px;font-size:22px;color:#E3E8F2', text: 'New GideonRaid build — drag & drop it into Interface/AddOns/' }, msg)
+    const att = h('div', { cls: 'abs', css: `left:104px;top:190px;width:580px;height:96px;border-radius:12px;background:#070918;border:1px solid ${C.gold};display:flex;align-items:center;gap:18px;padding:0 20px;box-sizing:border-box;transform-origin:0 50%` }, chat)
+    att.innerHTML = `<div style="width:44px;height:54px;border-radius:6px;background:${C.gold};position:relative;flex:none"><i style="position:absolute;left:19px;top:6px;width:6px;height:36px;background:repeating-linear-gradient(${C.night} 0 4px,transparent 4px 8px)"></i></div>
+      <div><div class="mono" style="font-size:22px;color:#fff">GideonRaid.zip</div><div class="mono" style="font-size:14px;color:${C.gMuted};margin-top:4px;letter-spacing:.06em">AUTO-BUILT FROM A GIT TAG · GITHUB ACTIONS</div></div>`
+    const cap = h('div', { cls: 'abs mono', css: `left:150px;top:828px;font-size:16px;letter-spacing:.12em;color:${C.gMuted};white-space:pre`, text: 'git tag → GitHub Actions → zip → GIDEON posts it → drag & drop' }, L)
+    const panel = h('div', { cls: 'gcard', css: 'left:1170px;top:330px;width:238px;height:598px;box-shadow:0 30px 80px rgba(0,0,0,.5)' }, L)
+    const cards = ['3v1r', '2v2r', '1v3r'].map((s, i) => {
+      const c = h('div', { cls: 'gcard', css: `left:14px;top:${14 + i * 190}px;width:208px;height:178px;background:#070918;display:flex;align-items:center;justify-content:center` }, panel)
+      I(`gideon/${s}.png`, c, 'width:188px;height:auto')
+      return c
+    })
+    const word = h('div', { cls: 'abs disp', css: `left:0;right:0;top:214px;text-align:center;font-size:92px;font-weight:700;color:${C.wow}`, text: 'Ping' }, panel)
+    const correct = h('div', { cls: 'abs mono', css: `left:40px;right:40px;top:352px;text-align:center;border:1px solid ${C.gold};border-radius:8px;padding:10px 0;font-size:16px;letter-spacing:.14em;color:#fff`, text: 'CORRECT' }, panel)
+    const pl = h('div', { cls: 'abs mono', css: `left:1452px;top:340px;font-size:15px;letter-spacing:.2em;color:${C.gold};white-space:pre`, text: 'IN GAME · INTERMISSION PANEL' }, L)
+    const role = h('div', { cls: 'abs', css: `left:1452px;top:384px;width:330px;font-size:24px;line-height:1.45;color:${C.gMuted}`,
+      html: `Click your orbs → <b style="color:#fff">one word</b>.<br><b style="color:${C.wow}">1V3R</b> is the anchor: ping yourself.` }, L)
+    const cursor = h('div', { cls: 'abs', css: 'left:0;top:0;width:36px;height:36px;z-index:5', html: '<svg viewBox="0 0 24 24" width="36" height="36"><path d="M3 2l7.5 19 2.6-8.1L21 10.3z" fill="#fff" stroke="#04050F" stroke-width="1.6" stroke-linejoin="round"/></svg>' }, L)
+    return {
+      render(t) {
+        fade(k, t, CH[4]); rise(ttl, t, CH[4] + 0.08)
+        fade(chat, t, 33.45, 0.45, 30)
+        O(text, tw(t, 33.65, 0.3))
+        pop(att, t, 33.8, 2.4, 0.5)
+        O(cap, tw(t, 34.05, 0.35))
+        fade(panel, t, 33.7, 0.45, 30); O(pl, tw(t, 33.85, 0.35))
+        const click = t - 34.62                                    // mouse released on 1V3R
+        cards.forEach((c, i) => {
+          O(c, tw(t, 33.75 + i * 0.07, 0.25) * (1 - tw(t, 34.62, 0.12, E.lin)))
+          c.style.borderColor = i === 2 && t > 34.45 ? (t > 34.55 && click < 0 ? C.goldHi : C.cyan) : C.gold
+        })
+        const sh = tw(t, 34.62, 0.32, E.inOut)                    // the panel folds around the word
+        panel.style.height = lerp(598, 300, sh) + 'px'; panel.style.top = lerp(330, 479, sh) + 'px'
+        word.style.top = lerp(214, 46, sh) + 'px'; correct.style.top = lerp(352, 196, sh) + 'px'
+        V(word, click > 0); T(word, `scale(${Math.max(0, spring(click - 0.06, 2.8, 0.45))})`)
+        V(correct, click > 0.14); O(correct, tw(t, 34.76, 0.2))
+        fade(role, t, 34.85, 0.4, 16)
+        const cm = tw(t, 34.1, 0.4, E.inOut)
+        const press = t > 34.55 && t < 34.62
+        T(cursor, `translate(${lerp(1720, 1300, cm)}px,${lerp(1080, 832, cm)}px) scale(${press ? 0.86 : 1})`)
+        O(cursor, t < 34.95 ? 1 : 1 - tw(t, 34.95, 0.2))
+      },
+    }
+  })()
+
+  // 06 REPEAT — the same playbook on the other bots (texts from hauserjean.fr)
+  const c6 = (() => {
+    const L = layers[5]
+    const k = kicker(L, '06 — REPEAT · SAME PLAYBOOK, OTHER BOTS')
+    const ttl = title(L, 'Embed with the users. Find the real constraint.\nAutomate it. Ship it where they already are.', 'width:1640px;font-size:58px')
+    const BOTS = [
+      ['GIDEON', 'DISCORD BOT · LUA 5.1', 'Raid assignments computed out of game, posted in Discord, displayed in game.'],
+      ['career-ops', 'PIPELINE · NODE + CLAUDE', 'Scans job portals, scores each offer, tailors a CV per offer, tracks it all in a dashboard.'],
+      ['Trading systems', 'PYTHON · RISK ENGINE', 'Automated sizing and risk gates, backtested before going live, a paper-trading shadow in parallel.'],
+      ['Agentic workflows', 'CLAUDE + MCP', 'Parallel research fan-out, adversarial verification of findings, structured triage.'],
+    ]
+    const cards = BOTS.map(([n, tag, d], i) => {
+      const c = h('div', { cls: 'gcard', css: `left:${150 + i * 410}px;top:470px;width:390px;height:330px;padding:28px` }, L)
+      c.innerHTML = `<div class="mono" style="font-size:15px;letter-spacing:.2em;color:${C.gold}">0${i + 1}</div>
+        <div class="disp" style="font-size:36px;font-weight:700;letter-spacing:-.02em;color:#fff;margin-top:16px">${n}</div>
+        <div class="mono" style="font-size:13px;letter-spacing:.16em;color:${C.cyan};margin-top:10px">${tag}</div>
+        <div style="font-size:20px;line-height:1.45;color:${C.gMuted};margin-top:18px">${d}</div>`
+      return c
+    })
+    const loop = h('div', { cls: 'abs mono', css: 'left:150px;top:846px;font-size:18px;letter-spacing:.2em;color:rgba(169,180,199,.5);white-space:pre' }, L)
+    const loopEls = STEPS.map((w, i) => { if (i) h('span', { text: '  →  ' }, loop); return h('span', { text: w }, loop) })
+    return {
+      render(t) {
+        fade(k, t, CH[5]); rise(ttl, t, CH[5] + 0.08, 0.035)
+        cards.forEach((c, i) => {
+          const st = CH[5] + 0.55 + i * 0.12, p = spring(t - st, 2.2, 0.5)
+          T(c, `translateY(${(1 - p) * 90}px)`); O(c, clamp((t - st) * 6))
+          const hv = t - (CH[5] + 1.55 + i * 0.3)
+          c.style.borderColor = hv > 0 && hv < 0.45 ? C.cyan : C.gold
+        })
+        O(loop, tw(t, CH[5] + 1.1, 0.4))
+        const hi = Math.floor((t - CH[5] - 1.3) / 0.26)
+        loopEls.forEach((el, i) => { el.style.color = hi >= 0 && hi % 6 === i ? C.gold : '' })
+      },
+    }
+  })()
+
+  const chapters = [c1, c2, c3, c4, c5, c6]
+  return {
+    layout() { chapters.forEach(c => c.layout && c.layout()) },
+    render(t) {
+      T(head.firstChild, `translateY(${(1 - tw(t, G0 + 0.05, 0.5)) * 110}%)`)
+      T(rule, `scaleX(${tw(t, G0, 0.6)})`)
+      T(ruleFill, `scaleX(${clamp((t - G0) / (G1 - G0))})`)
+      let cur = 0
+      for (let i = 0; i < 6; i++) if (t >= CH[i]) cur = i
+      steps.forEach((s, j) => {
+        s.el.style.color = j === cur ? C.gold : j < cur ? C.gMuted : 'rgba(169,180,199,.35)'
+        T(s.bar, `scaleX(${j < cur ? 1 : j === cur ? tw(t, CH[j], 0.5) : 0})`)
+        s.bar.style.opacity = j === cur ? 1 : 0.35
+        O(s.el, tw(t, G0 + 0.1 + j * 0.05, 0.4))
+      })
+      layers.forEach((L, i) => {
+        const on = t >= CH[i] && (i === 5 || t < CH[i + 1])
+        L.style.display = on ? 'block' : 'none'
+        if (!on) return
+        const out = i === 5 ? 0 : tw(t, CH[i + 1] - 0.3, 0.3, E.in)
+        O(L, 1 - out); T(L, `translateY(${-out * 40}px)`); L.style.filter = out > 0 ? `blur(${out * 8}px)` : 'none'
+        chapters[i].render(t)
+      })
+    },
+  }
+}, true)
+
+// 07 ─ PLANS & AMBIANCES (outil-archi) ─────────────────── reel 14.0 → 15.5
+// Transparent until its circle wipe opens over the last GIDEON chapter.
+scene('blueprint', 14.0, 15.5, 7, root => {
+  const CX = 960, CY = 560
   // blueprint — outil-archi "Plans & Ambiances"
-  const bp = h('div', { cls: 'fill', css: 'background-color:#0B2A6F;background-image:linear-gradient(rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:160px 160px,160px 160px,32px 32px,32px 32px;background-position:-1px -1px' }, root)
+  const bp = h('div', { cls: 'fill', css: 'background-color:#08218E;background-image:linear-gradient(rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:160px 160px,160px 160px,32px 32px,32px 32px;background-position:-1px -1px' }, root)
   const bhead = h('div', { cls: 'abs', css: 'left:150px;top:108px' }, bp)
   const bttl = h('div', { cls: 'disp', css: 'font-size:76px;font-weight:700;letter-spacing:-.03em;overflow:hidden;line-height:1.08', html: '<div>PLANS &amp; AMBIANCES</div>' }, bhead)
   const bsub = h('div', { cls: 'mono', css: 'font-size:18px;letter-spacing:.2em;color:rgba(255,255,255,.72);margin-top:8px;white-space:pre', text: 'OUTIL ARCHI D’INTÉRIEUR · PWA · PLAN 2D · EXPORT PDF · AMBIANCES IA' }, bhead)
@@ -714,28 +1043,6 @@ scene('systems', 13.5, 15.5, 7, root => {
   const amb = h('div', { cls: 'abs mono pill', css: 'left:1480px;top:352px;flex-direction:column;align-items:flex-start;gap:14px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.28);padding:18px 22px;font-size:15px;letter-spacing:.16em;color:#fff;transform-origin:0 0', html: `<div>AMBIANCE IA</div><div style="font:600 24px Inter,sans-serif;letter-spacing:0">Warm minimal</div><div style="display:flex;gap:8px">${['#E8D9C5', '#CBB8A0', '#D8C3AE', '#B9CFCB', '#E2CDBF'].map(c => `<i style="display:block;width:26px;height:26px;border-radius:50%;background:${c}"></i>`).join('')}</div>` }, bp)
   return {
     render(t) {
-      const sp = spring(t - 13.5, 2.2, 0.5)
-      T(hub, `scale(${lerp(0.3, 1, sp)})`); O(hub, clamp((t - 13.5) * 8))
-      r1.setAttribute('transform', `rotate(${t * 40} 310 310)`); r2.setAttribute('transform', `rotate(${-t * 26} 310 310)`)
-      T(face, `scale(${lerp(1.3, 1, tw(t, 13.5, 0.6))})`)
-      O(glow, tw(t, 13.5, 0.4) * (0.8 + 0.2 * Math.sin(t * 9)))
-      nodes.forEach(n => {
-        const st = 13.62 + n.i * 0.035
-        draw(n.line, tw(t, st, 0.24))
-        const p = spring(t - st - 0.1, 2.6, 0.45)
-        T(n.el, `translate(-50%,-50%) scale(${Math.max(0, p)})`)
-        n.pulses.forEach((c, k) => {
-          const u = ((t - 13.86) * 1.5 + n.i * 0.13 + k * 0.5) % 1
-          V(c, t > 13.86)
-          c.setAttribute('cx', lerp(CX, n.x, u)); c.setAttribute('cy', lerp(CY, n.y, u))
-          c.setAttribute('opacity', Math.sin(u * Math.PI))
-        })
-      })
-      T(ttl.firstChild, `translateY(${(1 - tw(t, 13.56, 0.4)) * 110}%)`)
-      O(sub, tw(t, 13.68, 0.3))
-      const nl = Math.floor(LOG.join('\n').length * tw(t, 13.8, 0.5, E.lin))
-      log.textContent = LOG.join('\n').slice(0, nl)
-
       const br = tw(t, 14.4, 0.28, E.inOut)
       V(bp, br > 0)
       bp.style.clipPath = `circle(${br * 1200}px at ${CX}px ${CY}px)`
@@ -761,7 +1068,7 @@ scene('systems', 13.5, 15.5, 7, root => {
   }
 })
 
-// 07 ─ SELECTED WORK — isometric wall + hyper-cut ─────────── 15.36 → 17.5
+// 08 ─ SELECTED WORK — isometric wall + hyper-cut ─────────── 15.36 → 17.5
 scene('wall', 15.36, 17.5, 8, root => {
   root.style.background = C.ink
   const COLS = [
@@ -780,20 +1087,20 @@ scene('wall', 15.36, 17.5, 8, root => {
     for (let r = 0; r < 3; r++) for (const src of list) I((src === 'gideon' ? 'img/gideon' : 'img/' + src) + '.webp', strip, 'width:440px;margin-bottom:28px;border-radius:10px;box-shadow:0 20px 40px rgba(0,0,0,.4)')
     return { strip, seq: 0, dir: k % 2 ? 1 : -1, v: 0.8 + 0.35 * rnd(k * 4.7) }
   })
-  h('div', { cls: 'fill', css: 'background:radial-gradient(ellipse 80% 70% at 50% 50%,rgba(11,12,14,.25),rgba(11,12,14,.75))' }, root)
+  h('div', { cls: 'fill', css: 'background:radial-gradient(ellipse 80% 70% at 50% 50%,rgba(4,5,15,.25),rgba(4,5,15,.78))' }, root)
   const marquee = (top, text, css) => {
     const m = h('div', { cls: 'abs', css: `left:0;right:0;top:${top}px;height:230px;overflow:hidden` }, root)
     return h('div', { cls: 'abs disp', css: `left:0;top:0;font-size:200px;font-weight:700;letter-spacing:-.045em;line-height:1.1;white-space:nowrap;${css}`, text: text.repeat(4) }, m)
   }
-  const mA = marquee(190, 'DESIGN — BUILD — SECURE — SHIP — ', 'color:transparent;-webkit-text-stroke:2.5px rgba(244,243,239,.92)')
-  const mB = marquee(680, 'SELECTED WORK • WEB • SECURITY • SYSTEMS • ', `color:${C.blueHi}`)
+  const mA = marquee(190, 'DESIGN — BUILD — SECURE — SHIP — ', 'color:transparent;-webkit-text-stroke:2.5px rgba(250,250,249,.92)')
+  const mB = marquee(680, 'SELECTED WORK • WEB • SECURITY • SYSTEMS • ', `color:${C.gold}`)
   const flash = h('div', { cls: 'fill', css: `background:${C.paper};opacity:0` }, root)
   // hyper-cut montage on 16th notes
   const CUTS = ['hauum-kinetic', 'choviahe', 'gideon', 'hauserjean', 'cafebong-v1', 'hauum-dark-luxe', 'hauum-brutalist-chic', null]
   const WORDS = ['DESIGN', 'BUILD', 'SECURE', 'SHIP']
-  const cut = h('div', { cls: 'fill', css: `background:${C.blue}` }, root)
+  const cut = h('div', { cls: 'fill', css: `background:${C.royal}` }, root)
   const cutImgs = CUTS.map(src => src ? I('img/' + src + '.webp', cut, 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover') : null)
-  const tint = h('div', { cls: 'fill', css: `background:${C.blue};mix-blend-mode:multiply` }, cut)
+  const tint = h('div', { cls: 'fill', css: `background:${C.royal};mix-blend-mode:multiply` }, cut)
   const n277 = h('div', { cls: 'abs disp', css: `left:0;right:0;top:250px;text-align:center;font-size:520px;font-weight:700;letter-spacing:-.05em;line-height:1;color:${C.paper}`, text: '277' }, cut)
   const cword = h('div', { cls: 'abs disp', css: 'left:0;right:0;top:360px;text-align:center;font-size:300px;font-weight:700;letter-spacing:-.05em;line-height:1;color:#fff;mix-blend-mode:difference' }, cut)
   return {
@@ -829,7 +1136,7 @@ scene('wall', 15.36, 17.5, 8, root => {
 
 // ─ breath: flash, then silence with a lone caret ───────────── 17.5 → 18.0
 scene('breath', 17.5, 18.0, 9, root => {
-  const caret = h('div', { cls: 'abs', css: `left:949px;top:461px;width:22px;height:158px;background:${C.blueHi}` }, root)
+  const caret = h('div', { cls: 'abs', css: `left:949px;top:461px;width:22px;height:158px;background:${C.gold}` }, root)
   return {
     render(t) {
       root.style.background = mix(C.paper, C.ink, tw(t, 17.5, 0.22))
@@ -838,28 +1145,28 @@ scene('breath', 17.5, 18.0, 9, root => {
   }
 })
 
-// 08 ─ OUTRO ─────────────────────────────────────────────── 18.0 → 20.0
+// 09 ─ OUTRO ─────────────────────────────────────────────── 18.0 → 20.0
 scene('outro', 18.0, 20.01, 10, root => {
   root.style.background = C.paper
   const vl = [], hl = []
-  for (let i = 0; i <= 12; i++) vl.push(h('div', { cls: 'gl v', css: `left:${96 + i * 144}px;background:rgba(11,12,14,.07)` }, root))
-  for (let j = 0; j <= 6; j++) hl.push(h('div', { cls: 'gl h', css: `top:${96 + j * 148}px;background:rgba(11,12,14,.07)` }, root))
+  for (let i = 0; i <= 12; i++) vl.push(h('div', { cls: 'gl v', css: `left:${96 + i * 144}px;background:rgba(17,17,17,.07)` }, root))
+  for (let j = 0; j <= 6; j++) hl.push(h('div', { cls: 'gl h', css: `top:${96 + j * 148}px;background:rgba(17,17,17,.07)` }, root))
   const wrap = h('div', { cls: 'fill', css: 'transform-origin:50% 50%' }, root)
-  const name = h('div', { cls: 'abs disp', css: `left:0;right:0;top:360px;text-align:center;font-size:212px;font-weight:700;line-height:1;letter-spacing:-.045em;color:${C.ink};white-space:nowrap` }, wrap)
+  const name = h('div', { cls: 'abs disp', css: `left:0;right:0;top:360px;text-align:center;font-size:212px;font-weight:700;line-height:1;letter-spacing:-.045em;color:${C.siteInk};white-space:nowrap` }, wrap)
   const L = chars(name, 'JEAN HAUSER')
   const under = h('div', { cls: 'abs', css: `height:12px;background:${C.blue};transform-origin:0 50%` }, wrap)
   const caret = h('div', { cls: 'abs', css: `width:22px;height:158px;background:${C.blue}` }, wrap)
-  const role = h('div', { cls: 'abs mono', css: 'left:0;right:0;top:640px;text-align:center;overflow:hidden;font-size:23px;letter-spacing:.26em;color:rgba(11,12,14,.72);white-space:pre', html: '<div>SENIOR PRODUCT OWNER · CYBERSECURITY PM · BUILDER</div>' }, wrap)
+  const role = h('div', { cls: 'abs mono', css: 'left:0;right:0;top:640px;text-align:center;overflow:hidden;font-size:23px;letter-spacing:.26em;color:rgba(17,17,17,.72);white-space:pre', html: '<div>SENIOR PRODUCT OWNER · CYBERSECURITY PM · BUILDER</div>' }, wrap)
   const links = h('div', { cls: 'abs disp', css: 'left:0;right:0;top:716px;display:flex;justify-content:center;gap:34px;font-size:36px;font-weight:500;letter-spacing:-.01em;color:#111' }, wrap)
   const items = ['hauserjean.fr', 'github.com/BathmanTv', 'linkedin.com/in/hauserjean'].flatMap((s, j) => {
     const out = []
-    if (j) out.push(h('span', { css: `display:inline-block;width:10px;height:10px;border-radius:50%;background:${C.blue};align-self:center` }, links))
+    if (j) out.push(h('span', { css: `display:inline-block;width:10px;height:10px;border-radius:50%;background:${C.gold};align-self:center` }, links))
     const m = h('span', { css: 'display:inline-block;overflow:hidden;padding-bottom:.1em' }, links)
     out.push(h('span', { css: 'display:inline-block', text: s }, m))
     return out
   })
-  const fl = h('div', { cls: 'abs mono', css: 'left:56px;bottom:44px;font-size:15px;letter-spacing:.14em;color:rgba(11,12,14,.6)', text: 'SHOWREEL 2026 — MOTION · WEB · SECURITY' }, root)
-  const fr = h('div', { cls: 'abs mono', css: 'right:56px;bottom:44px;font-size:15px;letter-spacing:.14em;color:rgba(11,12,14,.6)', text: 'REMOTE-FIRST · EU + APAC' }, root)
+  const fl = h('div', { cls: 'abs mono', css: 'left:56px;bottom:44px;font-size:15px;letter-spacing:.14em;color:rgba(17,17,17,.6)', text: 'SHOWREEL 2026 — MOTION · WEB · SECURITY' }, root)
+  const fr = h('div', { cls: 'abs mono', css: 'right:56px;bottom:44px;font-size:15px;letter-spacing:.14em;color:rgba(17,17,17,.6)', text: 'REMOTE-FIRST · EU + APAC' }, root)
   let nm = { l: 0, r: 0 }
   return {
     layout() {
@@ -903,12 +1210,12 @@ const barBox = h('div', { cls: 'bar' }, hudInfo)
 const barFill = h('i', {}, barBox)
 h('div', { cls: 'abs', css: 'right:280px;bottom:44px', text: 'HAUSERJEAN.FR' }, hudInfo)
 const SECTIONS = [
-  [0, '00 / BOOT'], [2.0, '01 / MANIFESTO'], [4.0, '02 / DONATELLO — SECURITY'], [8.0, '03 / HAUUM — WEB'],
-  [9.85, '04 / CHỢ VỈA HÈ — WEB'], [12.0, '05 / CAFÉ BÔNG — WEB'], [13.5, '06 / GIDEON — RAID ORCHESTRATOR'],
-  [14.45, '07 / PLANS & AMBIANCES — PWA'], [15.4, '08 / SELECTED WORK'],
+  [0, '00 / BOOT'], [2.0 / SLOW, '01 / MANIFESTO'], [4.0 / SLOW, '02 / DONATELLO — SECURITY'], [8.0 / SLOW, '03 / HAUUM — WEB'],
+  [9.85 / SLOW, '04 / CHỢ VỈA HÈ — WEB'], [12.0 / SLOW, '05 / CAFÉ BÔNG — WEB'], [G0, '06 / GIDEON — CASE STUDY'],
+  [G1 + 0.45 / SLOW, '07 / PLANS & AMBIANCES — PWA'], [G1 + 1.4 / SLOW, '08 / SELECTED WORK'],
 ]
 function renderHud(t) {
-  V(hudInfo, t < 18.0)
+  V(hudInfo, t < G1 + 4 / SLOW)
   const f = Math.floor(t * 60 + 1e-6)
   tc.textContent = `00:00:${String(Math.floor(f / 60)).padStart(2, '0')}:${String(f % 60).padStart(2, '0')}`
   let s = SECTIONS[0]
@@ -931,14 +1238,15 @@ const noise = Array.from({ length: 8 }, (_, k) => {
 })
 h('div', { cls: 'vignette' }, stage)
 
-function renderFrame(t) {
+function renderFrame(T) {
   for (const sc of scenes) {
-    const on = t >= sc.t0 && t < sc.t1
+    const t = sc.master ? T : reelT(T)
+    const on = t !== null && t >= sc.t0 && t < sc.t1
     if (on !== sc.on) { sc.root.style.display = on ? 'block' : 'none'; sc.on = on }
     if (on) sc.render(t)
   }
-  renderHud(t)
-  gctx.putImageData(noise[Math.floor(t * 60 + 1e-6) % 8], 0, 0)
+  renderHud(T)
+  gctx.putImageData(noise[Math.floor(T * 60 + 1e-6) % 8], 0, 0)
 }
 
 // ───────────────────────── boot ─────────────────────────
