@@ -330,7 +330,7 @@ scene('donatello', 4.0, 8.0, 3, root => {
   back.innerHTML = `<div style="display:flex;align-items:center;gap:16px">${pill(C.green, 'PASS')}<span class="mono" style="font-size:17px;letter-spacing:.14em;color:${C.muted}">E1 · RESOLVED</span></div>
     <div class="disp" style="font-size:42px;font-weight:600;line-height:1.08;margin-top:26px;letter-spacing:-.015em">Checks → Effects → Interactions</div>
     <div style="font-size:21px;line-height:1.45;color:#A3B6AC;margin-top:16px">State is written before the call. 0 findings, regression-locked.</div>
-    <div class="mono abs" style="left:38px;bottom:28px;font-size:14px;letter-spacing:.16em;color:#5C6F66">CTF-VALIDATED · 0 FALSE POSITIVES</div>`
+    <div class="mono abs" style="left:38px;bottom:28px;font-size:14px;letter-spacing:.16em;color:#5C6F66">CTF-VALIDATED · REGRESSION-LOCKED</div>`
   const svg = sv('svg', { width: W, height: H, style: 'position:absolute;left:0;top:0;overflow:visible' }, group)
   const conn = sv('path', { fill: 'none', stroke: C.red, 'stroke-width': 2.5, pathLength: 1, 'stroke-dasharray': 1 }, svg)
   const connDot = sv('circle', { r: 6, fill: C.red }, svg)
@@ -670,7 +670,7 @@ scene('systems', 13.5, 15.5, 7, root => {
   const CX = 960, CY = 560
   const glow = h('div', { cls: 'abs', css: `left:${CX - 330}px;top:${CY - 330}px;width:660px;height:660px;border-radius:50%;background:radial-gradient(circle,rgba(61,107,255,.42),transparent 62%)` }, root)
   const esvg = sv('svg', { width: W, height: H, style: 'position:absolute;left:0;top:0' }, root)
-  const NODES = [['Claude', 205], ['MCP', 180], ['Discord bot', 155], ['Pairing engine', -25], ['VPS · Lua 5.1', 0], ['WoW addon', 25]]
+  const NODES = [['Discord roster', 205], ['VPS · Lua 5.1', 180], ['Pairing engine', 155], ['SavedVariables', -25], ['GideonRaid addon', 0], ['Intermission Coach', 25]]
   const nodes = NODES.map(([label, a], i) => {
     const x = CX + 560 * Math.cos(a * Math.PI / 180), y = CY + 290 * Math.sin(a * Math.PI / 180)
     const line = sv('line', { x1: CX, y1: CY, x2: x, y2: y, stroke: 'rgba(61,107,255,.7)', 'stroke-width': 1.6, pathLength: 1, 'stroke-dasharray': 1 }, esvg)
@@ -685,8 +685,8 @@ scene('systems', 13.5, 15.5, 7, root => {
   const face = I('img/gideon.webp', hub, 'position:absolute;left:125px;top:125px;width:370px;height:370px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(61,107,255,.7),0 0 80px rgba(61,107,255,.5)')
   const head = h('div', { cls: 'abs', css: 'left:150px;top:108px' }, root)
   const ttl = h('div', { cls: 'disp', css: 'font-size:84px;font-weight:700;letter-spacing:-.035em;overflow:hidden;line-height:1.05', html: '<div>GIDEON</div>' }, head)
-  const sub = h('div', { cls: 'mono', css: `font-size:18px;letter-spacing:.2em;color:${C.muted};margin-top:8px;white-space:pre`, text: 'AGENTIC ORCHESTRATION · CLAUDE + MCP · RAID COACH' }, head)
-  const LOG = ['› fan-out    6 agents · parallel', '› verify     adversarial  ✓', '› triage     structured → SavedVariables']
+  const sub = h('div', { cls: 'mono', css: `font-size:18px;letter-spacing:.2em;color:${C.muted};margin-top:8px;white-space:pre`, text: 'DISCORD ORCHESTRATOR · RAID COACH · WOW MIDNIGHT' }, head)
+  const LOG = ['› roster     Discord → pairing_cli.lua', '› pairs      computed out of game  ✓', '› deliver    SavedVariables → addon']
   const log = h('div', { cls: 'abs mono', css: `left:150px;top:858px;font-size:19px;line-height:32px;color:${C.muted};white-space:pre` }, root)
 
   // blueprint — outil-archi "Plans & Ambiances"
@@ -786,7 +786,7 @@ scene('wall', 15.36, 17.5, 8, root => {
     return h('div', { cls: 'abs disp', css: `left:0;top:0;font-size:200px;font-weight:700;letter-spacing:-.045em;line-height:1.1;white-space:nowrap;${css}`, text: text.repeat(4) }, m)
   }
   const mA = marquee(190, 'DESIGN — BUILD — SECURE — SHIP — ', 'color:transparent;-webkit-text-stroke:2.5px rgba(244,243,239,.92)')
-  const mB = marquee(680, 'SELECTED WORK • 2024 — 2026 • ', `color:${C.blueHi}`)
+  const mB = marquee(680, 'SELECTED WORK • WEB • SECURITY • SYSTEMS • ', `color:${C.blueHi}`)
   const flash = h('div', { cls: 'fill', css: `background:${C.paper};opacity:0` }, root)
   // hyper-cut montage on 16th notes
   const CUTS = ['hauum-kinetic', 'choviahe', 'gideon', 'hauserjean', 'cafebong-v1', 'hauum-dark-luxe', 'hauum-brutalist-chic', null]
@@ -904,7 +904,7 @@ const barFill = h('i', {}, barBox)
 h('div', { cls: 'abs', css: 'right:280px;bottom:44px', text: 'HAUSERJEAN.FR' }, hudInfo)
 const SECTIONS = [
   [0, '00 / BOOT'], [2.0, '01 / MANIFESTO'], [4.0, '02 / DONATELLO — SECURITY'], [8.0, '03 / HAUUM — WEB'],
-  [9.85, '04 / CHỢ VỈA HÈ — WEB'], [12.0, '05 / CAFÉ BÔNG — WEB'], [13.5, '06 / GIDEON — AGENTIC'],
+  [9.85, '04 / CHỢ VỈA HÈ — WEB'], [12.0, '05 / CAFÉ BÔNG — WEB'], [13.5, '06 / GIDEON — RAID ORCHESTRATOR'],
   [14.45, '07 / PLANS & AMBIANCES — PWA'], [15.4, '08 / SELECTED WORK'],
 ]
 function renderHud(t) {

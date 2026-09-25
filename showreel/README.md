@@ -16,7 +16,7 @@ Rendu final : [`out/showreel.mp4`](out/showreel.mp4)
 | 8 → 10 s | HAUUM | Carrousel 3D des 5 directions design, fond qui change de couleur à chaque direction, recul sur la rangée |
 | 10 → 12 s | Chợ Vỉa Hè | Page kraft qui se tourne, illustrations d'Oriane en ressorts, scooter qui traverse, clic sur « Réserver une table » |
 | 12 → 13,5 s | Café Bông | Arche + vidéo du phin, Fraunces, goutte de café qui éclabousse la transition |
-| 13,5 → 15,5 s | GIDEON + Plans & Ambiances | Graphe d'agents avec impulsions, puis plan 2D qui se dessine et bascule en isométrique |
+| 13,5 → 15,5 s | GIDEON + Plans & Ambiances | Orchestrateur Discord → VPS (Lua) → addon WoW en graphe avec impulsions, puis plan 2D qui se dessine et bascule en isométrique |
 | 15,5 → 17,5 s | Selected work | Mur isométrique de toutes les pages, marquees, hyper-cut en double-croches |
 | 17,5 → 18 s | Respiration | Flash, silence, caret seul |
 | 18 → 20 s | Outro | Nom, soulignement, liens |
