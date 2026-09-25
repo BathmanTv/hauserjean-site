@@ -6,7 +6,7 @@
    Pacing: the v1 cut was watched at 0.6× and felt right, so every v1 scene runs on
    "reel time" = master time × 0.6 (72 BPM instead of 120). The GIDEON case study is
    inserted between Café Bông and Plans & Ambiances and is timed directly in master
-   seconds on the same 72 BPM grid. */
+   seconds on the same 72 BPM grid (the 30 s cut of the GIDEON production brief). */
 (() => {
 'use strict'
 
@@ -15,8 +15,8 @@ const SLOW = 0.6
 const BT = 60 / 72                 // one beat, master seconds
 const bt = n => n * BT
 const G0 = bt(27)                  // 22.5 s   — GIDEON case study starts (v1 t = 13.5)
-const G1 = bt(47)                  // 39.17 s  — v1 resumes at its t = 14.0
-const DUR = G1 + 6 / SLOW          // 49.17 s
+const G1 = bt(63)                  // 52.5 s   — v1 resumes at its t = 14.0
+const DUR = G1 + 6 / SLOW          // 62.5 s
 const reelT = T => (T < G0 ? T * SLOW : T >= G1 ? 14 + (T - G1) * SLOW : null)
 const C = {
   // GIDEON palette — Core/Layout.lua in BathmanTv/Gideon (delivered by the raid lead)
@@ -694,322 +694,225 @@ scene('cafebong', 12.0, 13.5, 6, root => {
   }
 })
 
-// 06 ─ GIDEON — a case study told the forward-deployed way ──── master G0 → G1 + 1.25
-// Timed in MASTER seconds on the 72 BPM grid. Every claim on screen comes from the
-// GideonRaid README (BathmanTv/Gideon); the orb pictures are the addon's own textures.
+// 06 ─ GIDEON — un bot, un addon, une guilde ─────────── master G0 → G1 + 1.25
+// The 30 s cut of the GIDEON production brief (SHOWREEL_GIDEON_VIDEO.md, §6.7): scenes 1, 4
+// and 6, voice-over shown as FR subtitles in cyan. Timed in master seconds on the 72 BPM grid.
+// Palette: night background, cyan = technical accent, gold = human accent (brief §2).
 scene('gideon', G0, G1 + 1.25, 6, root => {
   root.style.background = C.night
-  h('div', { cls: 'fill', css: 'background:radial-gradient(ellipse 60% 55% at 74% 40%,rgba(8,33,142,.5),transparent 70%)' }, root)
-  h('div', { cls: 'fill dotgrid' }, root)
-  const CH = [27, 30, 33, 37, 40, 43, 47].map(bt)   // chapter boundaries, master seconds
-  const STEPS = ['DISCOVER', 'CONSTRAINT', 'ARCHITECT', 'BUILD', 'SHIP', 'REPEAT']
-  const head = h('div', { cls: 'abs mono', css: `left:150px;top:100px;font-size:16px;letter-spacing:.24em;color:${C.gold};white-space:pre;overflow:hidden`, html: '<div>CASE STUDY — GIDEON · A FORWARD-DEPLOYED BUILD</div>' }, root)
-  const stepper = h('div', { cls: 'abs mono', css: 'right:150px;top:100px;display:flex;gap:24px;font-size:14px;letter-spacing:.14em' }, root)
-  const steps = STEPS.map((s, i) => {
-    const el = h('div', { css: 'position:relative;padding-bottom:12px;white-space:pre', text: `0${i + 1} ${s}` }, stepper)
-    const bar = h('i', { css: `position:absolute;left:0;right:0;bottom:0;height:2px;background:${C.gold};transform-origin:0 50%;transform:scaleX(0)` }, el)
-    return { el, bar }
-  })
-  const rule = h('div', { cls: 'abs', css: 'left:150px;right:150px;top:152px;height:1px;background:rgba(169,180,199,.16);transform-origin:0 50%' }, root)
-  const ruleFill = h('div', { cls: 'abs', css: `left:0;top:0;bottom:0;width:100%;background:${C.gold};transform-origin:0 50%;transform:scaleX(0)` }, rule)
-  const layers = STEPS.map(() => h('div', { cls: 'fill' }, root))
-  const kicker = (L, text) => h('div', { cls: 'abs mono', css: `left:150px;top:196px;font-size:18px;letter-spacing:.22em;color:${C.gold};white-space:pre`, text }, L)
-  const title = (L, text, css = '') => words(h('div', { cls: 'abs disp', css: `left:150px;top:238px;font-size:66px;font-weight:700;line-height:1.02;letter-spacing:-.03em;color:${C.paper};${css}` }, L), text)
-  const rise = (els, t, t0, st = 0.04, d = 0.55) => els.forEach((w, j) => T(w, `translateY(${(1 - tw(t, t0 + j * st, d)) * 118}%)`))
+  const S1 = bt(27), S4 = bt(35), S6 = bt(55), END = bt(63)
+  const TITLE = "font-family:'Barlow Condensed',sans-serif;font-weight:700"   // single quotes: also used inside style="" attributes
+  const BODY = "font-family:'Fira Sans',sans-serif"
+  const L1 = h('div', { cls: 'fill' }, root), L4 = h('div', { cls: 'fill' }, root), L6 = h('div', { cls: 'fill' }, root)
   const fade = (el, t, t0, d = 0.45, dy = 26) => { const p = tw(t, t0, d); O(el, p); T(el, `translateY(${(1 - p) * dy}px)`) }
-  const pop = (el, t, t0, f = 2.4, z = 0.5) => { const p = spring(t - t0, f, z); T(el, `scale(${Math.max(0, p)})`); O(el, clamp((t - t0) * 8)) }
 
-  // 01 DISCOVER — the users' problem, with the addon's own orb screenshots
-  const c1 = (() => {
-    const L = layers[0]
-    const k = kicker(L, '01 — DISCOVER · A RAID GUILD OF ~25 PLAYERS')
-    const ttl = title(L, 'Make 4 green + 4 red.\nAnything else wipes.', 'width:860px')
-    const body = h('div', { cls: 'abs', css: `left:150px;top:436px;width:720px;font-size:26px;line-height:1.5;color:${C.gMuted}`, html:
-      `Each player carries <b style="color:#fff">3 green + 1 red</b>, <b style="color:#fff">2 + 2</b> or <b style="color:#fff">1 + 3</b> orbs and pairs up with a partner. After 3 s the room goes dark — everyone sees only their own orbs.` }, L)
-    const EQ = [['3v1r', '1v3r', '4 green + 4 red', true], ['2v2r', '2v2r', '4 green + 4 red', true], ['3v1r', '2v2r', '5 green — wipe', false]]
-    const rows = EQ.map(([a, b, res, ok], r) => {
-      const card = h('div', { cls: 'gcard', css: `left:990px;top:${226 + r * 212}px;width:780px;height:192px;display:flex;align-items:center;padding:0 26px;gap:18px` }, L)
-      I(`gideon/${a}.png`, card, 'width:168px;height:auto')
-      h('div', { cls: 'disp', css: `font-size:44px;font-weight:500;color:${C.gMuted}`, text: '+' }, card)
-      I(`gideon/${b}.png`, card, 'width:168px;height:auto')
-      h('div', { cls: 'disp', css: `font-size:44px;font-weight:500;color:${C.gMuted}`, text: '=' }, card)
-      const out = h('div', { cls: 'disp', css: `font-size:30px;font-weight:600;line-height:1.1;color:${ok ? C.cyan : C.red};white-space:nowrap`, html: `${ok ? '✓' : '✗'}&nbsp;${res}` }, card)
-      return { card, out, ok, t0: bt(27.85) + r * 0.3 }
-    })
-    return {
-      render(t) {
-        fade(k, t, CH[0]); rise(ttl, t, CH[0] + 0.08)
-        fade(body, t, CH[0] + 0.45)
-        rows.forEach(r => {
-          const p = spring(t - r.t0, 2.1, 0.55)
-          const s = t - (r.t0 + 0.32)
-          const shake = !r.ok && s > 0 && s < 0.4 ? Math.sin(s * 70) * 10 * (1 - s / 0.4) : 0
-          T(r.card, `translateX(${(1 - p) * 140 + shake}px)`); O(r.card, clamp((t - r.t0) * 5))
-          const po = tw(t, r.t0 + 0.32, 0.3)
-          O(r.out, po); T(r.out, `translateX(${(1 - po) * 20}px)`)
-          if (!r.ok) {
-            r.card.style.borderColor = s > 0 ? C.red : C.gold
-            r.card.style.background = s > 0 ? `rgba(229,72,77,${0.04 + 0.1 * (1 - clamp(s / 1.2))})` : C.panel
-          }
-        })
-      },
-    }
-  })()
+  // ── subtitles: the voice-over, FR, cyan ──
+  const CUES = [
+    [S1 + 0.25, S1 + 1.95, 'Trois heures de raid.'],
+    [S1 + 1.95, S1 + 3.45, 'Quarante-sept tentatives.'],
+    [S1 + 3.45, S1 + 6.1, 'Et à la fin, personne ne sait dire pourquoi on meurt.'],
+    [S4 + 5.3, S4 + 9.4, 'ANCHOR — reste sur place'],
+    [S6 + 0.35, S6 + 1.6, 'GIDEON.'],
+    [S6 + 1.6, S6 + 3.3, 'Fait pour une guilde.'],
+    [S6 + 3.3, S6 + 5.6, 'Utilisé par une guilde.'],
+  ]
+  const sub = h('div', { cls: 'abs', css: `left:0;right:0;top:944px;text-align:center;z-index:5` }, root)
+  const subIn = h('span', { css: `display:inline-block;${BODY};font-weight:500;font-size:32px;color:${C.cyan};background:rgba(4,5,15,.72);padding:8px 22px;border-radius:8px;text-shadow:0 0 18px rgba(122,219,250,.35)` }, sub)
 
-  // 02 CONSTRAINT — patch 12.0 "Secret Values" breaks the classic raid-addon approach
-  const c2 = (() => {
-    const L = layers[1]
-    const k = kicker(L, '02 — CONSTRAINT · PATCH 12.0 “SECRET VALUES”')
-    const ttl = title(L, 'The game client can no\nlonger compute it.', 'width:1000px')
-    const code = h('div', { cls: 'term', css: 'left:1210px;top:206px;width:560px;height:150px' }, L)
-    code.innerHTML = `<div class="tb"><i></i><i></i><i></i>&nbsp; in combat · 12.x</div>
-      <div class="tl" style="margin-top:22px;font-size:28px"><span style="color:${C.cyan}">if</span> aura <span style="color:#6F7890">&gt;</span> <span style="color:${C.goldHi}">0</span> <span style="color:${C.cyan}">then</span></div>`
-    const squig = h('div', { cls: 'abs', css: `left:24px;top:112px;width:258px;height:4px;background:repeating-linear-gradient(90deg,${C.red} 0 6px,transparent 6px 10px);transform-origin:0 50%;transform:scaleX(0)` }, code)
-    const err = h('div', { cls: 'abs mono pill', css: `left:1210px;top:378px;background:${C.red};color:#fff;font-size:17px;font-weight:700;letter-spacing:.1em;padding:9px 16px;transform-origin:0 50%`, text: '✗ IMMEDIATE LUA ERROR' }, L)
-    const ROWS = [
-      ['Read other players’ auras (UnitAura)', 'secret value → Lua error'],
-      ['Listen to COMBAT_LOG_EVENT', 'registering it raises an error'],
-      ['Addon → addon messages in an instance', 'no channel any more'],
-    ]
-    const rows = ROWS.map(([a, b], r) => {
-      const y = 492 + r * 112
-      const txt = h('div', { cls: 'abs', css: `left:150px;top:${y}px;font-size:32px;font-weight:500;color:#fff;white-space:nowrap`, text: a }, L)
-      const strike = h('div', { cls: 'abs', css: `left:144px;top:${y + 22}px;height:3px;background:${C.red};transform-origin:0 50%;transform:scaleX(0)` }, L)
-      const arrow = h('div', { cls: 'abs mono', css: `left:1010px;top:${y + 2}px;font-size:28px;color:${C.gMuted}`, text: '→' }, L)
-      const chip = h('div', { cls: 'abs mono pill', css: `left:1070px;top:${y - 4}px;border:1px solid ${C.red};background:rgba(229,72,77,.12);color:#FF8A8D;font-size:19px;letter-spacing:.06em;padding:10px 18px;white-space:nowrap;transform-origin:0 50%`, text: b }, L)
-      return { txt, strike, arrow, chip, t0: bt(30.75) + r * 0.32 }
-    })
-    const concl = h('div', { cls: 'abs disp', css: `left:150px;top:840px;font-size:40px;font-weight:600;color:${C.goldHi}`, text: '→ So the pairing is computed out of game.' }, L)
-    let widths = []
-    return {
-      layout() { widths = rows.map(r => r.txt.offsetWidth + 12) },
-      render(t) {
-        fade(k, t, CH[1]); rise(ttl, t, CH[1] + 0.08)
-        fade(code, t, CH[1] + 0.3)
-        const e = t - (CH[1] + 0.66)
-        T(squig, `scaleX(${tw(t, CH[1] + 0.56, 0.18)})`)
-        code.style.borderColor = e > 0 ? C.red : 'rgba(209,154,69,.35)'
-        code.style.translate = e > 0 && e < 0.25 ? `${(rnd(Math.floor(t * 60)) - 0.5) * 18}px 0` : '0 0'
-        V(err, e > 0); T(err, `scale(${Math.max(0, spring(e, 3, 0.4))})`)
-        rows.forEach((r, i) => {
-          fade(r.txt, t, r.t0, 0.4, 20)
-          r.txt.style.color = t > r.t0 + 0.42 ? 'rgba(255,255,255,.45)' : '#fff'
-          r.strike.style.width = widths[i] + 'px'
-          T(r.strike, `scaleX(${tw(t, r.t0 + 0.26, 0.24, E.io)})`)
-          O(r.arrow, tw(t, r.t0 + 0.34, 0.25))
-          pop(r.chip, t, r.t0 + 0.4, 2.6, 0.5)
-        })
-        fade(concl, t, bt(32.05), 0.45, 24)
-      },
-    }
-  })()
+  // ── SCENE 1 — the problem: a fog of combat logs, pulls : 47 ──
+  const logBox = h('div', { cls: 'fill', css: 'transform-origin:960px 540px' }, L1)
+  const TYPES = ['SPELL_DAMAGE', 'SPELL_AURA_APPLIED', 'SPELL_CAST_SUCCESS', 'UNIT_DIED', 'SPELL_PERIODIC_DAMAGE', 'SPELL_HEAL', 'SPELL_AURA_REMOVED', 'SPELL_MISSED']
+  const blk = n => '▇'.repeat(n)                    // names are always masked
+  const FIRST = [
+    `[20:14:07.312]  SPELL_DAMAGE        Helical Toxins  ${blk(6)} → ${blk(7)}`,
+    `[20:14:07.905]  SPELL_AURA_APPLIED  Helical Toxins  ${blk(5)} → ${blk(6)}`,
+    `[20:14:08.221]  UNIT_DIED           ${blk(8)}`,
+  ]
+  const logs = []
+  FIRST.forEach((text, i) => logs.push({ el: h('div', { cls: 'abs mono', css: `left:330px;top:${420 + i * 44}px;font-size:24px;color:${C.cyan};white-space:pre`, text }, logBox), t0: S1 + 0.2 + i * 0.35, x0: 0, v: 0, y: 420 + i * 44, o: 0.95, first: true }))
+  for (let i = 0; i < 70; i++) {
+    const r = k => rnd(i * 13.7 + k)
+    const text = `[20:${String(14 + Math.floor(r(1) * 40)).padStart(2, '0')}:${String(Math.floor(r(2) * 60)).padStart(2, '0')}.${String(Math.floor(r(3) * 1000)).padStart(3, '0')}]  ${TYPES[Math.floor(r(4) * TYPES.length)].padEnd(22)}${blk(3 + Math.floor(r(5) * 7))} → ${blk(3 + Math.floor(r(6) * 8))}`
+    const y = 150 + r(7) * 780
+    logs.push({ el: h('div', { cls: 'abs mono', css: `left:0;top:${y}px;font-size:${16 + Math.floor(r(8) * 10)}px;color:${C.cyan};white-space:pre`, text }, logBox),
+      t0: S1 + 1.4 + i * 0.05, x0: -300 + r(9) * 1200, v: (r(10) - 0.5) * 220, y, o: 0.18 + r(11) * 0.4 })
+  }
+  const vign = h('div', { cls: 'fill', css: 'background:radial-gradient(ellipse 32% 30% at 50% 50%,rgba(4,5,15,.92),rgba(4,5,15,0) 100%)' }, L1)
+  const counter = h('div', { cls: 'abs', css: `left:0;right:0;top:360px;text-align:center;transform-origin:960px 180px` }, L1)
+  h('div', { cls: 'mono', css: `font-size:40px;letter-spacing:.2em;color:${C.gold}`, text: 'pulls :' }, counter)
+  const num = h('div', { css: `${TITLE};font-size:230px;line-height:1;color:${C.gold};text-shadow:0 0 40px rgba(209,154,69,.55)` }, counter)
+  const burst = h('div', { cls: 'abs', css: `left:960px;top:540px;width:0;height:0;border-radius:50%;border:6px solid ${C.cyan};box-shadow:0 0 60px ${C.cyan}` }, root)
+  const flash = h('div', { cls: 'abs', css: `left:960px;top:540px;width:0;height:0;border-radius:50%;background:radial-gradient(circle,${C.cyan},rgba(122,219,250,0) 70%)` }, root)
 
-  // 03 ARCHITECT — the README's pipeline, drawn and running
-  const c3 = (() => {
-    const L = layers[2]
-    const k = kicker(L, '03 — ARCHITECT · COMPUTE OUT OF GAME, READ IN GAME')
-    const ttl = title(L, 'GIDEON computes.\nThe addon only reads.', 'width:1000px')
-    const band = (top, hh, label) => [
-      h('div', { cls: 'abs', css: `left:130px;top:${top}px;width:1660px;height:${hh}px;border-radius:18px;background:rgba(8,33,142,.16);border:1px solid rgba(169,180,199,.12)` }, L),
-      h('div', { cls: 'abs mono', css: `left:150px;top:${top - 30}px;font-size:15px;letter-spacing:.22em;color:${C.gold};white-space:pre`, text: label }, L),
-    ]
-    const bands = [band(468, 190, 'OUT OF GAME · VPS'), band(718, 180, 'IN GAME · WOW CLIENT')].flat()
-    const svg = sv('svg', { width: W, height: H, style: 'position:absolute;left:0;top:0;overflow:visible' }, L)
-    const node = (css, html) => h('div', { cls: 'gcard', css: `${css};display:flex;flex-direction:column;justify-content:center;padding:0 24px`, html }, L)
-    const sub = s => `<div class="mono" style="font-size:14px;letter-spacing:.16em;color:${C.gMuted};margin-top:8px">${s}</div>`
-    const A = node('left:180px;top:508px;width:300px;height:110px', `<div class="disp" style="font-size:28px;font-weight:600;color:#fff">Discord roster</div>${sub('INPUT')}`)
-    const B = h('div', { cls: 'abs', css: 'left:700px;top:490px;width:124px;height:124px' }, L)
-    I('img/gideon.webp', B, `width:124px;height:124px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px ${C.gold},0 0 50px rgba(122,219,250,.35)`)
-    h('div', { cls: 'abs mono', css: `left:-40px;width:204px;top:130px;text-align:center;font-size:14px;letter-spacing:.18em;color:${C.gold}`, text: 'GIDEON · VPS' }, B)
-    const Cn = node('left:1010px;top:508px;width:440px;height:110px', `<div class="mono" style="font-size:24px;color:#fff">lua5.1 pairing_cli.lua</div>${sub('DETERMINISTIC PAIRS')}`)
-    const D = node('left:1330px;top:752px;width:430px;height:112px', `<div class="mono" style="font-size:21px;color:#fff">SavedVariables/GideonRaid.lua</div>${sub('STRINGS — NEVER SECRET')}`)
-    const Ek = node('left:1010px;top:770px;width:190px;height:76px;align-items:center;padding:0', `<div class="mono" style="font-size:26px;color:#fff">/reload</div>`)
-    const F = node('left:180px;top:752px;width:470px;height:112px', `<div style="display:flex;align-items:center;gap:14px"><div><div class="disp" style="font-size:28px;font-weight:600;color:#fff">GideonRaid</div>${sub('DISPLAYS THE PAIRS')}</div>
-      <div style="margin-left:auto;display:flex;gap:6px">${['3v1r', '2v2r', '1v3r'].map(s => `<img src="assets/gideon/${s}.png" style="width:52px">`).join('')}</div></div>`)
-    const NODES = [A, B, Cn, D, Ek, F]
-    const PATHS = ['M480 563 H700', 'M824 552 H1010', 'M1450 563 H1545 V752', 'M1330 808 H1200', 'M1010 808 H650']
-    const edges = PATHS.map(d => {
-      const p = sv('path', { d, fill: 'none', stroke: C.cyan, 'stroke-width': 2, 'stroke-opacity': 0.75, pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1 }, svg)
-      const dots = [0, 1].map(() => sv('circle', { r: 5, fill: C.cyan }, svg))
-      return { p, dots, len: 0 }
-    })
-    const NT = [27.92, 28.25, 28.55, 28.95, 29.22, 29.5]          // node pops (master s)
-    const ET = [28.05, 28.4, 28.72, 29.1, 29.36]                  // edge draws
-    const chip = h('div', { cls: 'gcard', css: `left:150px;top:914px;height:54px;display:flex;align-items:center;padding:0 22px;white-space:nowrap;font:400 17px var(--mono);color:#fff`,
-      html: `<span style="color:${C.gold}">Core/Pairing.lua</span>&nbsp;·&nbsp;the same pure Lua 5.1 file runs on the VPS and in the client → identical pairs` }, L)
-    return {
-      layout() { edges.forEach(e => { e.len = e.p.getTotalLength() }) },
-      render(t) {
-        fade(k, t, CH[2]); rise(ttl, t, CH[2] + 0.08)
-        bands.forEach(b => O(b, tw(t, CH[2] + 0.25, 0.4)))
-        NODES.forEach((n, i) => pop(n, t, NT[i]))
-        edges.forEach((e, i) => {
-          draw(e.p, tw(t, ET[i], 0.22))
-          e.dots.forEach((c, j) => {
-            const u = ((t - 29.6) * 0.8 + j * 0.5 + i * 0.17) % 1
-            V(c, t > 29.6)
-            if (t > 29.6 && e.len) { const pt = e.p.getPointAtLength(u * e.len); c.setAttribute('cx', pt.x); c.setAttribute('cy', pt.y); c.setAttribute('opacity', Math.sin(u * Math.PI)) }
-          })
-        })
-        fade(chip, t, 29.75, 0.45, 16)
-      },
-    }
-  })()
+  // ── SCENE 4 — the addon, the key scene ──
+  const head = h('div', { cls: 'abs mono', css: `left:150px;top:100px;font-size:16px;letter-spacing:.24em;color:${C.gold};white-space:pre;overflow:hidden`, html: '<div>GIDEON — UN BOT, UN ADDON, UNE GUILDE</div>' }, L4)
+  const kick = h('div', { cls: 'abs', css: `left:150px;top:134px;${TITLE};font-size:46px;letter-spacing:.02em;color:#fff;white-space:pre`, text: 'L’ADDON · INTERMISSION, ENTOMBED SENTINELS' }, L4)
+  const MAP = h('div', { cls: 'abs', css: 'left:150px;top:200px;width:940px;height:740px' }, L4)
+  const msvg = sv('svg', { width: 940, height: 740, style: 'position:absolute;left:0;top:0;overflow:visible' }, MAP)
+  const defs = sv('defs', {}, msvg)
+  const grad = sv('radialGradient', { id: 'floor', cx: '50%', cy: '50%', r: '50%' }, defs)
+  sv('stop', { offset: '0%', 'stop-color': C.royal, 'stop-opacity': 0.55 }, grad)
+  sv('stop', { offset: '70%', 'stop-color': C.panel, 'stop-opacity': 0.9 }, grad)
+  sv('stop', { offset: '100%', 'stop-color': C.night, 'stop-opacity': 1 }, grad)
+  const floor = sv('circle', { cx: 470, cy: 370, r: 330, fill: 'url(#floor)' }, msvg)
+  const ring = sv('circle', { cx: 470, cy: 370, r: 330, fill: 'none', stroke: C.gold, 'stroke-width': 1.6, 'stroke-opacity': 0.7, pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1 }, msvg)
+  const rings = [210, 110].map(r => sv('circle', { cx: 470, cy: 370, r, fill: 'none', stroke: 'rgba(169,180,199,.18)', 'stroke-width': 1, 'stroke-dasharray': '4 8' }, msvg))
+  const pass = sv('circle', { cx: 470, cy: 370, r: 10, fill: 'none', stroke: C.cyan, 'stroke-width': 3 }, msvg)
+  const trail = sv('path', { d: 'M760 190 C 620 250, 440 430, 292 540', fill: 'none', stroke: C.gold, 'stroke-width': 2.5, 'stroke-dasharray': '2 9', 'stroke-linecap': 'round', opacity: 0 }, msvg)
+  const boss = h('div', { cls: 'abs', css: `left:436px;top:336px;width:68px;height:68px;border-radius:50%;background:${C.panel};border:2px solid ${C.gold};box-shadow:0 0 30px rgba(8,33,142,.8)` }, MAP)
+  h('div', { cls: 'abs mono', css: `left:-20px;right:-20px;top:76px;text-align:center;font-size:13px;letter-spacing:.2em;color:${C.gold}`, text: 'BOSS' }, boss)
+  const ORB = { g: '#5CFF5C', r: '#FF4D4D' }
+  const player = (x, y, comp) => {
+    const el = h('div', { cls: 'abs', css: `left:${x - 24}px;top:${y - 24}px;width:48px;height:48px` }, MAP)
+    const halo = h('div', { cls: 'abs', css: `left:-18px;top:-18px;width:84px;height:84px;border-radius:50%;border:2px solid ${C.gold};opacity:0` }, el)
+    h('div', { cls: 'abs', css: `inset:0;border-radius:50%;background:${C.panel};border:2px solid ${C.gold};box-shadow:0 6px 18px rgba(0,0,0,.6)` }, el)
+    h('div', { cls: 'abs', css: `left:17px;top:6px;width:14px;height:8px;border-radius:4px;background:${C.gold}` }, el)
+    const orbs = h('div', { cls: 'abs', css: 'left:-14px;top:-30px;width:76px;display:flex;justify-content:center;gap:4px' }, el)
+    const dots = [...comp].map(c => h('i', { css: `display:block;width:14px;height:14px;border-radius:50%;background:${ORB[c]};box-shadow:0 0 10px ${ORB[c]},0 0 2px #fff inset` }, orbs))
+    return { el, halo, orbs, dots, x, y }
+  }
+  const A = player(210, 560, 'grrr')      // 1 vert + 3 rouges → ANCHOR
+  const Ch = player(760, 190, 'gggr')     // 3 verts + 1 rouge → CHASSEUR
+  const M1 = player(190, 190, 'ggrr')     // 2 + 2 → au milieu
+  const M2 = player(760, 570, 'ggrr')
+  const PL = [A, Ch, M1, M2]
+  const ping = h('div', { cls: 'abs', css: 'left:210px;top:470px;width:0;height:0' }, MAP)
+  const pingGem = h('div', { cls: 'abs', css: `left:-13px;top:-13px;width:26px;height:26px;background:${C.goldHi};transform:rotate(45deg);box-shadow:0 0 24px ${C.goldHi}` }, ping)
+  const pingRings = [0, 1].map(() => h('div', { cls: 'abs', css: `border-radius:50%;border:2px solid ${C.cyan}` }, ping))
+  const pairLab = (x, y) => h('div', { cls: 'abs mono', css: `left:${x}px;top:${y}px;transform:translateX(-50%);font-size:16px;letter-spacing:.06em;color:${C.cyan};white-space:pre;background:rgba(4,5,15,.75);padding:5px 10px;border-radius:6px;border:1px solid rgba(122,219,250,.4)`, text: '4 verts + 4 rouges  ✓' }, MAP)
+  const labA = pairLab(240, 612), labM = pairLab(470, 548)
+  // the addon's panel: opens by itself, three cards, one click, one line
+  const chip = h('div', { cls: 'abs mono', css: `left:1530px;top:190px;font-size:15px;letter-spacing:.16em;color:${C.cyan};white-space:pre`, text: 'INTERMISSION −2 s' }, L4)
+  const panel = h('div', { cls: 'gcard', css: 'left:1530px;top:228px;width:240px;height:560px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55);transform-origin:50% 0' }, L4)
+  const cards = ['3v1r', '2v2r', '1v3r'].map((s, i) => {
+    const c = h('div', { cls: 'gcard', css: `left:14px;top:${14 + i * 180}px;width:212px;height:168px;background:#070918;display:flex;align-items:center;justify-content:center` }, panel)
+    I(`gideon/${s}.png`, c, 'width:176px;height:auto')
+    return c
+  })
+  const line = h('div', { cls: 'abs', css: `left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;opacity:0`,
+    html: `<span style="${TITLE};font-size:46px;letter-spacing:.03em;color:${C.goldHi}">ANCHOR</span><span style="${BODY};font-weight:500;font-size:25px;color:#fff">— reste sur place, ping toi-même</span>` }, panel)
+  const LEG = ['2 verts + 2 rouges → au milieu', '1 vert + 3 rouges → ANCRE : tu pinges sur toi', '3 verts + 1 rouge → CHASSEUR : tu cours vers un ping']
+  const legend = LEG.map((s, i) => h('div', { cls: 'abs mono', css: `left:1170px;top:${410 + i * 52}px;font-size:19px;color:${C.cyan};white-space:pre`, text: s }, L4))
+  const insert = h('div', { cls: 'abs mono', css: `left:1170px;top:650px;font-size:14px;line-height:26px;letter-spacing:.16em;color:rgba(122,219,250,.8);white-space:pre;border-left:2px solid ${C.cyan};padding-left:14px`,
+    text: 'APPARIEMENT CORRECT PAR CONSTRUCTION\nAUCUNE LECTURE DE COMBAT\nBILINGUE FR/EN' }, L4)
+  const cursor = h('div', { cls: 'abs', css: 'left:0;top:0;width:36px;height:36px;z-index:6', html: '<svg viewBox="0 0 24 24" width="36" height="36"><path d="M3 2l7.5 19 2.6-8.1L21 10.3z" fill="#fff" stroke="#04050F" stroke-width="1.6" stroke-linejoin="round"/></svg>' }, root)
 
-  // 04 BUILD — the real CLI output and the single exit gate (README reference run)
-  const c4 = (() => {
-    const L = layers[3]
-    const k = kicker(L, '04 — BUILD · TESTED OUT OF GAME, EVERY CHANGE')
-    const ttl = title(L, 'Deterministic. Linted. 398 tests.', 'width:1620px')
-    const termBox = (left, width, label) => {
-      const el = h('div', { cls: 'term', css: `left:${left}px;top:372px;width:${width}px;height:470px` }, L)
-      el.innerHTML = `<div class="tb"><i></i><i></i><i></i>&nbsp; ${label}</div>`
-      return el
-    }
-    const t1 = termBox(150, 800, '~/gideon — pairing')
-    const cmd1 = h('div', { cls: 'tl', css: 'margin-top:16px;color:#fff' }, t1)
-    const CMD1 = '$ lua5.1 tools/pairing_cli.lua < tools/sample_roster.csv'
-    const PAIRS = ['Bren|Aster', 'Coren|Bathman', 'Ilya|Dorian', 'Kaela|Halda', 'Mira|Lumen', 'Rukh|Nyx', 'Serka|Ordan', 'Sylvia|Pax', 'Velna|Torgh', 'Zerun|Vaelen']
-    const pairEls = PAIRS.map((p, i) => h('div', { cls: 'abs mono', css: `left:${24 + (i >= 5 ? 300 : 0)}px;top:${128 + (i % 5) * 34}px;font-size:20px;white-space:pre;color:#fff`,
-      html: p.replace('|', `<span style="color:${C.gold}">|</span>`) }, t1))
-    const note = h('div', { cls: 'abs mono', css: `left:24px;top:318px;font-size:18px;color:${C.gMuted};white-space:pre`, text: '# deterministic — same roster, same pairs (diff-able)' }, t1)
-    const t2 = termBox(990, 780, '~/gideon — single exit gate')
-    const cmd2 = h('div', { cls: 'tl', css: 'margin-top:16px;color:#fff' }, t2)
-    const CHECKS = [['stylua --check .', ''], ['luacheck .', '0 warnings / 0 errors in 32 files'], ['check_toc', 'OK GideonRaid.toc'], ['busted', '']]
-    const checkEls = CHECKS.map(([a, b], i) => h('div', { cls: 'abs mono', css: `left:24px;top:${128 + i * 40}px;font-size:20px;white-space:pre;color:#CBD3E1`,
-      html: `<span style="color:${C.green}">✓</span> ${a.padEnd(17)}<span style="color:${C.gMuted}">${b}</span>` }, t2))
-    const busted = checkEls[3].lastChild
-    const pass = h('div', { cls: 'abs mono pill', css: `left:24px;top:318px;background:rgba(61,214,140,.12);border:1px solid ${C.green};color:${C.green};font-size:18px;letter-spacing:.12em;padding:10px 18px;transform-origin:0 50%`, text: '✓ MAKE CHECK — ALL GREEN' }, t2)
-    const type = (el, text, t, t0, d) => { const n = Math.floor(text.length * tw(t, t0, d, E.lin)); el.textContent = text.slice(0, n) + (n > 0 && n < text.length ? '_' : '') }
-    return {
-      render(t) {
-        fade(k, t, CH[3]); rise(ttl, t, CH[3] + 0.08, 0.05)
-        fade(t1, t, CH[3] + 0.12, 0.45, 30); fade(t2, t, CH[3] + 0.24, 0.45, 30)
-        type(cmd1, CMD1, t, CH[3] + 0.3, 0.5)
-        pairEls.forEach((el, i) => O(el, tw(t, CH[3] + 0.85 + i * 0.045, 0.15)))
-        O(note, tw(t, CH[3] + 1.4, 0.3))
-        type(cmd2, '$ make check', t, CH[3] + 0.45, 0.22)
-        checkEls.forEach((el, i) => O(el, tw(t, CH[3] + 0.75 + i * 0.18, 0.15)))
-        busted.textContent = `${Math.round(398 * tw(t, CH[3] + 1.29, 0.55))} successes / 0 failures`
-        pop(pass, t, CH[3] + 1.85, 2.6, 0.5)
-      },
-    }
-  })()
+  // ── SCENE 6 — the final word ──
+  const pulse = h('div', { cls: 'abs', css: 'left:960px;top:470px;width:0;height:0;border-radius:50%;background:radial-gradient(circle,rgba(255,233,130,.35) 0%,rgba(122,219,250,.4) 30%,rgba(8,33,142,.5) 55%,rgba(8,33,142,0) 72%)' }, L6)
+  const word = h('div', { cls: 'abs', css: `left:0;right:0;top:300px;text-align:center;${TITLE};font-size:260px;line-height:1;letter-spacing:.05em;color:${C.gold};text-shadow:0 0 50px rgba(209,154,69,.35)` }, L6)
+  const WL = chars(word, 'GIDEON', true)
+  const L6L = [
+    `<span style="color:${C.cyan}">Bot Discord</span> — analyse, coaching, rappels`,
+    `<span style="color:${C.cyan}">Addon WoW</span> — disponible sur CurseForge`,
+    `<span style="color:${C.gold}">Deux outils, une guilde qui progresse</span>`,
+  ].map((html, i) => h('div', { cls: 'abs', css: `left:0;right:0;top:${612 + i * 56}px;text-align:center;${BODY};font-size:32px;color:#E3E8F2`, html }, L6))
+  const black = h('div', { cls: 'fill', css: `background:${C.night};opacity:0;z-index:7` }, root)
 
-  // 05 SHIP — delivered where the players already are, then used in game
-  const c5 = (() => {
-    const L = layers[4]
-    const k = kicker(L, '05 — SHIP · WHERE THE PLAYERS ALREADY ARE')
-    const ttl = title(L, 'One Discord post.\nZero accounts for players.', 'width:1000px')
-    const chat = h('div', { cls: 'abs', css: `left:150px;top:470px;width:840px;height:330px;border-radius:16px;background:${C.panel};border:1px solid rgba(169,180,199,.18);box-shadow:0 30px 80px rgba(0,0,0,.45)` }, L)
-    h('div', { cls: 'mono', css: `height:52px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid rgba(169,180,199,.12);font-size:18px;color:${C.gMuted};white-space:pre`, text: '#  addons' }, chat)
-    const msg = h('div', { cls: 'abs', css: 'left:24px;top:76px;right:24px' }, chat)
-    I('img/gideon.webp', msg, 'position:absolute;left:0;top:0;width:60px;height:60px;border-radius:50%;object-fit:cover')
-    h('div', { css: 'margin-left:80px;display:flex;align-items:center;gap:10px', html: `<span class="disp" style="font-size:26px;font-weight:600;color:#fff">GIDEON</span><span class="mono" style="font-size:12px;letter-spacing:.1em;background:${C.royal};color:${C.cyan};padding:3px 7px;border-radius:4px">BOT</span>` }, msg)
-    const text = h('div', { css: 'margin-left:80px;margin-top:6px;font-size:22px;color:#E3E8F2', text: 'New GideonRaid build — drag & drop it into Interface/AddOns/' }, msg)
-    const att = h('div', { cls: 'abs', css: `left:104px;top:190px;width:580px;height:96px;border-radius:12px;background:#070918;border:1px solid ${C.gold};display:flex;align-items:center;gap:18px;padding:0 20px;box-sizing:border-box;transform-origin:0 50%` }, chat)
-    att.innerHTML = `<div style="width:44px;height:54px;border-radius:6px;background:${C.gold};position:relative;flex:none"><i style="position:absolute;left:19px;top:6px;width:6px;height:36px;background:repeating-linear-gradient(${C.night} 0 4px,transparent 4px 8px)"></i></div>
-      <div><div class="mono" style="font-size:22px;color:#fff">GideonRaid.zip</div><div class="mono" style="font-size:14px;color:${C.gMuted};margin-top:4px;letter-spacing:.06em">AUTO-BUILT FROM A GIT TAG · GITHUB ACTIONS</div></div>`
-    const cap = h('div', { cls: 'abs mono', css: `left:150px;top:828px;font-size:16px;letter-spacing:.12em;color:${C.gMuted};white-space:pre`, text: 'git tag → GitHub Actions → zip → GIDEON posts it → drag & drop' }, L)
-    const panel = h('div', { cls: 'gcard', css: 'left:1170px;top:330px;width:238px;height:598px;box-shadow:0 30px 80px rgba(0,0,0,.5)' }, L)
-    const cards = ['3v1r', '2v2r', '1v3r'].map((s, i) => {
-      const c = h('div', { cls: 'gcard', css: `left:14px;top:${14 + i * 190}px;width:208px;height:178px;background:#070918;display:flex;align-items:center;justify-content:center` }, panel)
-      I(`gideon/${s}.png`, c, 'width:188px;height:auto')
-      return c
-    })
-    const word = h('div', { cls: 'abs disp', css: `left:0;right:0;top:214px;text-align:center;font-size:92px;font-weight:700;color:${C.wow}`, text: 'Ping' }, panel)
-    const correct = h('div', { cls: 'abs mono', css: `left:40px;right:40px;top:352px;text-align:center;border:1px solid ${C.gold};border-radius:8px;padding:10px 0;font-size:16px;letter-spacing:.14em;color:#fff`, text: 'CORRECT' }, panel)
-    const pl = h('div', { cls: 'abs mono', css: `left:1452px;top:340px;font-size:15px;letter-spacing:.2em;color:${C.gold};white-space:pre`, text: 'IN GAME · INTERMISSION PANEL' }, L)
-    const role = h('div', { cls: 'abs', css: `left:1452px;top:384px;width:330px;font-size:24px;line-height:1.45;color:${C.gMuted}`,
-      html: `Click your orbs → <b style="color:#fff">one word</b>.<br><b style="color:${C.wow}">1V3R</b> is the anchor: ping yourself.` }, L)
-    const cursor = h('div', { cls: 'abs', css: 'left:0;top:0;width:36px;height:36px;z-index:5', html: '<svg viewBox="0 0 24 24" width="36" height="36"><path d="M3 2l7.5 19 2.6-8.1L21 10.3z" fill="#fff" stroke="#04050F" stroke-width="1.6" stroke-linejoin="round"/></svg>' }, L)
-    return {
-      render(t) {
-        fade(k, t, CH[4]); rise(ttl, t, CH[4] + 0.08)
-        fade(chat, t, 33.45, 0.45, 30)
-        O(text, tw(t, 33.65, 0.3))
-        pop(att, t, 33.8, 2.4, 0.5)
-        O(cap, tw(t, 34.05, 0.35))
-        fade(panel, t, 33.7, 0.45, 30); O(pl, tw(t, 33.85, 0.35))
-        const click = t - 34.62                                    // mouse released on 1V3R
-        cards.forEach((c, i) => {
-          O(c, tw(t, 33.75 + i * 0.07, 0.25) * (1 - tw(t, 34.62, 0.12, E.lin)))
-          c.style.borderColor = i === 2 && t > 34.45 ? (t > 34.55 && click < 0 ? C.goldHi : C.cyan) : C.gold
-        })
-        const sh = tw(t, 34.62, 0.32, E.inOut)                    // the panel folds around the word
-        panel.style.height = lerp(598, 300, sh) + 'px'; panel.style.top = lerp(330, 479, sh) + 'px'
-        word.style.top = lerp(214, 46, sh) + 'px'; correct.style.top = lerp(352, 196, sh) + 'px'
-        V(word, click > 0); T(word, `scale(${Math.max(0, spring(click - 0.06, 2.8, 0.45))})`)
-        V(correct, click > 0.14); O(correct, tw(t, 34.76, 0.2))
-        fade(role, t, 34.85, 0.4, 16)
-        const cm = tw(t, 34.1, 0.4, E.inOut)
-        const press = t > 34.55 && t < 34.62
-        T(cursor, `translate(${lerp(1720, 1300, cm)}px,${lerp(1080, 832, cm)}px) scale(${press ? 0.86 : 1})`)
-        O(cursor, t < 34.95 ? 1 : 1 - tw(t, 34.95, 0.2))
-      },
-    }
-  })()
-
-  // 06 REPEAT — the same playbook on the other bots (texts from hauserjean.fr)
-  const c6 = (() => {
-    const L = layers[5]
-    const k = kicker(L, '06 — REPEAT · SAME PLAYBOOK, OTHER BOTS')
-    const ttl = title(L, 'Embed with the users. Find the real constraint.\nAutomate it. Ship it where they already are.', 'width:1640px;font-size:58px')
-    const BOTS = [
-      ['GIDEON', 'DISCORD BOT · LUA 5.1', 'Raid assignments computed out of game, posted in Discord, displayed in game.'],
-      ['career-ops', 'PIPELINE · NODE + CLAUDE', 'Scans job portals, scores each offer, tailors a CV per offer, tracks it all in a dashboard.'],
-      ['Trading systems', 'PYTHON · RISK ENGINE', 'Automated sizing and risk gates, backtested before going live, a paper-trading shadow in parallel.'],
-      ['Agentic workflows', 'CLAUDE + MCP', 'Parallel research fan-out, adversarial verification of findings, structured triage.'],
-    ]
-    const cards = BOTS.map(([n, tag, d], i) => {
-      const c = h('div', { cls: 'gcard', css: `left:${150 + i * 410}px;top:470px;width:390px;height:330px;padding:28px` }, L)
-      c.innerHTML = `<div class="mono" style="font-size:15px;letter-spacing:.2em;color:${C.gold}">0${i + 1}</div>
-        <div class="disp" style="font-size:36px;font-weight:700;letter-spacing:-.02em;color:#fff;margin-top:16px">${n}</div>
-        <div class="mono" style="font-size:13px;letter-spacing:.16em;color:${C.cyan};margin-top:10px">${tag}</div>
-        <div style="font-size:20px;line-height:1.45;color:${C.gMuted};margin-top:18px">${d}</div>`
-      return c
-    })
-    const loop = h('div', { cls: 'abs mono', css: 'left:150px;top:846px;font-size:18px;letter-spacing:.2em;color:rgba(169,180,199,.5);white-space:pre' }, L)
-    const loopEls = STEPS.map((w, i) => { if (i) h('span', { text: '  →  ' }, loop); return h('span', { text: w }, loop) })
-    return {
-      render(t) {
-        fade(k, t, CH[5]); rise(ttl, t, CH[5] + 0.08, 0.035)
-        cards.forEach((c, i) => {
-          const st = CH[5] + 0.55 + i * 0.12, p = spring(t - st, 2.2, 0.5)
-          T(c, `translateY(${(1 - p) * 90}px)`); O(c, clamp((t - st) * 6))
-          const hv = t - (CH[5] + 1.55 + i * 0.3)
-          c.style.borderColor = hv > 0 && hv < 0.45 ? C.cyan : C.gold
-        })
-        O(loop, tw(t, CH[5] + 1.1, 0.4))
-        const hi = Math.floor((t - CH[5] - 1.3) / 0.26)
-        loopEls.forEach((el, i) => { el.style.color = hi >= 0 && hi % 6 === i ? C.gold : '' })
-      },
-    }
-  })()
-
-  const chapters = [c1, c2, c3, c4, c5, c6]
   return {
-    layout() { chapters.forEach(c => c.layout && c.layout()) },
     render(t) {
-      T(head.firstChild, `translateY(${(1 - tw(t, G0 + 0.05, 0.5)) * 110}%)`)
-      T(rule, `scaleX(${tw(t, G0, 0.6)})`)
-      T(ruleFill, `scaleX(${clamp((t - G0) / (G1 - G0))})`)
-      let cur = 0
-      for (let i = 0; i < 6; i++) if (t >= CH[i]) cur = i
-      steps.forEach((s, j) => {
-        s.el.style.color = j === cur ? C.gold : j < cur ? C.gMuted : 'rgba(169,180,199,.35)'
-        T(s.bar, `scaleX(${j < cur ? 1 : j === cur ? tw(t, CH[j], 0.5) : 0})`)
-        s.bar.style.opacity = j === cur ? 1 : 0.35
-        O(s.el, tw(t, G0 + 0.1 + j * 0.05, 0.4))
-      })
-      layers.forEach((L, i) => {
-        const on = t >= CH[i] && (i === 5 || t < CH[i + 1])
-        L.style.display = on ? 'block' : 'none'
-        if (!on) return
-        const out = i === 5 ? 0 : tw(t, CH[i + 1] - 0.3, 0.3, E.in)
-        O(L, 1 - out); T(L, `translateY(${-out * 40}px)`); L.style.filter = out > 0 ? `blur(${out * 8}px)` : 'none'
-        chapters[i].render(t)
-      })
+      L1.style.display = t < S4 + 0.1 ? 'block' : 'none'; L4.style.display = t >= S4 && t < S6 ? 'block' : 'none'; L6.style.display = t >= S6 ? 'block' : 'none'
+      // subtitles
+      const cue = CUES.find(c => t >= c[0] && t < c[1])
+      V(sub, !!cue)
+      if (cue) { subIn.textContent = cue[2]; O(subIn, Math.min(tw(t, cue[0], 0.18), 1 - tw(t, cue[1] - 0.18, 0.18))) }
+
+      // scene 1
+      if (t < S4 + 0.1) {
+        logs.forEach(l => {
+          O(l.el, tw(t, l.t0, 0.3) * l.o)
+          const dx = l.first ? 0 : l.x0 + l.v * (t - l.t0)
+          const dy = l.first ? -Math.max(0, t - (S1 + 1.3)) * 26 : 0
+          T(l.el, `translate(${dx}px,${dy}px)`)
+        })
+        const fog = tw(t, S1 + 2.2, 3.4, E.io)
+        logBox.style.filter = fog > 0 ? `blur(${fog * 3.2}px)` : 'none'
+        const col = tw(t, S4 - 0.75, 0.7, E.in)                 // the fog collapses to a point
+        T(logBox, `scale(${1 - col * 0.985})`); O(logBox, 1 - col * 0.6)
+        O(vign, tw(t, S1 + 0.8, 0.8))
+        fade(counter, t, S1 + 0.9)
+        T(counter, `scale(${1 - col * 0.98})`); if (col > 0) O(counter, 1 - col)
+        num.textContent = 1 + Math.floor(46 * tw(t, S1 + 1.0, 3.6, E.io))
+      }
+      const bp = tw(t, S4 - 0.08, 0.55), br = bp * 900             // …then explodes in cyan
+      V(burst, t > S4 - 0.08 && bp < 1); V(flash, t > S4 - 0.08 && bp < 1)
+      burst.style.cssText += `;left:${960 - br}px;top:${540 - br}px;width:${2 * br}px;height:${2 * br}px;opacity:${1 - bp}`
+      const fr2 = bp * 520
+      flash.style.cssText += `;left:${960 - fr2}px;top:${540 - fr2}px;width:${2 * fr2}px;height:${2 * fr2}px;opacity:${0.9 * (1 - bp)}`
+
+      // scene 4
+      if (t >= S4 && t < S6) {
+        const u = t - S4
+        T(head.firstChild, `translateY(${(1 - tw(u, 0.1, 0.5)) * 110}%)`)
+        fade(kick, u, 0.2)
+        floor.setAttribute('opacity', tw(u, 0, 0.8))
+        draw(ring, tw(u, 0.05, 1.0, E.io))
+        rings.forEach((r, i) => r.setAttribute('opacity', tw(u, 0.5 + i * 0.15, 0.5)))
+        T(boss, `scale(${Math.max(0, spring(u - 0.35, 2.4, 0.5))})`)
+        PL.forEach((p, i) => {
+          T(p.el, `scale(${Math.max(0, spring(u - 0.5 - i * 0.12, 2.4, 0.5))})`)
+          p.dots.forEach((d, k) => T(d, `scale(${Math.max(0, spring(u - 0.9 - i * 0.12 - k * 0.05, 3, 0.45))})`))
+        })
+        // the panel opens by itself, two seconds before the intermission — "clac"
+        O(chip, tw(u, 2.0, 0.3) * (1 - tw(u, 4.8, 0.3)))
+        const op = tw(u, 2.6, 0.16, E.out)
+        const mo = tw(u, 4.8, 0.36, E.inOut)                      // after the click: one line
+        V(panel, u > 2.6)
+        panel.style.left = lerp(1530, 1170, mo) + 'px'; panel.style.width = lerp(240, 600, mo) + 'px'; panel.style.height = lerp(560, 116, mo) + 'px'
+        T(panel, `scaleY(${op})`)
+        cards.forEach((c, i) => {
+          O(c, tw(u, 2.66 + i * 0.05, 0.12) * (1 - tw(u, 4.72, 0.1, E.lin)))
+          c.style.borderColor = i === 2 && u > 4.4 ? (u > 4.55 && u < 4.7 ? C.goldHi : C.cyan) : C.gold
+        })
+        O(line, tw(u, 5.05, 0.25)); T(line, `translateY(${(1 - tw(u, 5.05, 0.35)) * 14}px)`)
+        legend.forEach((l, i) => fade(l, u, 5.8 + i * 0.8, 0.4, 16))
+        fade(insert, u, 12.8, 0.5, 12)
+        // the player clicks what they see (the addon never reads combat data), then pings themselves
+        let cx, cy
+        if (u < 5.6) { const m = tw(u, 3.6, 0.8, E.inOut); cx = lerp(1760, 1630, m); cy = lerp(1080, 700, m) }
+        else { const m = tw(u, 7.0, 0.9, E.inOut); cx = lerp(1630, 150 + 222, m); cy = lerp(700, 200 + 572, m) }
+        const press = (u > 4.55 && u < 4.7) || (u > 8.05 && u < 8.2)
+        T(cursor, `translate(${cx}px,${cy}px) scale(${press ? 0.86 : 1})`)
+        V(cursor, true); O(cursor, tw(u, 3.5, 0.2) * (1 - tw(u, 8.6, 0.3)))
+        O(A.halo, tw(u, 7.8, 0.2) * (u < 8.6 ? 1 : 0.9 + 0.1 * Math.sin(u * 6)))
+        T(A.halo, `scale(${u > 8.2 ? 1 + 0.08 * Math.sin((u - 8.2) * 7) : 1})`)
+        // ping on the anchor
+        V(ping, u > 8.2)
+        T(pingGem, `rotate(45deg) scale(${Math.max(0, spring(u - 8.2, 3, 0.4))})`)
+        pingRings.forEach((r, k) => {
+          const p = ((u - 8.2) * 0.9 + k * 0.5) % 1, rr = 12 + p * 60
+          r.style.cssText += `;left:${-rr}px;top:${-rr}px;width:${2 * rr}px;height:${2 * rr}px;opacity:${(1 - p) * 0.9}`
+        })
+        // the chaser runs to the ping, the 2 + 2 go to the middle
+        trail.setAttribute('opacity', tw(u, 9.0, 0.3) * (1 - tw(u, 12.6, 0.6)))
+        trail.style.strokeDashoffset = -u * 20
+        const run = tw(u, 9.2, 2.0, E.io)
+        const pt = trail.getPointAtLength(run * (trail._len || (trail._len = trail.getTotalLength())))
+        const bob = run > 0 && run < 1 ? Math.abs(Math.sin(u * 16)) * -5 : 0
+        Ch.el.style.left = pt.x - 24 + 'px'; Ch.el.style.top = pt.y - 24 + bob + 'px'
+        const mid = tw(u, 9.6, 1.8, E.io)
+        M1.el.style.left = lerp(190, 430, mid) - 24 + 'px'; M1.el.style.top = lerp(190, 500, mid) - 24 + 'px'
+        M2.el.style.left = lerp(760, 510, mid) - 24 + 'px'; M2.el.style.top = lerp(570, 500, mid) - 24 + 'px'
+        // pairs balance, the group gets through
+        const okA = tw(u, 11.25, 0.35), okM = tw(u, 11.5, 0.35)
+        fade(labA, u, 11.25, 0.35, 10); fade(labM, u, 11.5, 0.35, 10)
+        ;[A, Ch].forEach(p => p.dots.forEach(d => { d.style.filter = okA > 0 ? `brightness(${1 + 0.6 * okA})` : 'none' }))
+        ;[M1, M2].forEach(p => p.dots.forEach(d => { d.style.filter = okM > 0 ? `brightness(${1 + 0.6 * okM})` : 'none' }))
+        const g = tw(u, 12.2, 1.2)
+        pass.setAttribute('r', 10 + g * 330); pass.setAttribute('opacity', u > 12.2 ? 1 - g : 0)
+        ring.setAttribute('stroke', u > 12.2 && u < 13.4 ? C.cyan : C.gold)
+        const out = tw(u, S6 - S4 - 0.3, 0.3, E.in)
+        O(L4, 1 - out); L4.style.filter = out > 0 ? `blur(${out * 8}px)` : 'none'
+      } else V(cursor, false)
+
+      // scene 6
+      if (t >= S6) {
+        const v = t - S6
+        const pp = tw(v, 0.05, 1.3), pr = pp * 1100
+        pulse.style.cssText += `;left:${960 - pr}px;top:${470 - pr}px;width:${2 * pr}px;height:${2 * pr}px;opacity:${1 - pp}`
+        WL.forEach((l, i) => T(l.inner, `translateY(${(1 - tw(v, 0.12 + i * 0.05, 0.6)) * 110}%)`))
+        L6L.forEach((l, i) => fade(l, v, 0.9 + i * 0.4, 0.6, 20))
+        O(black, tw(t, END - 0.6, 0.6, E.io))
+      } else O(black, 0)
     },
   }
 }, true)
@@ -1211,7 +1114,7 @@ const barFill = h('i', {}, barBox)
 h('div', { cls: 'abs', css: 'right:280px;bottom:44px', text: 'HAUSERJEAN.FR' }, hudInfo)
 const SECTIONS = [
   [0, '00 / BOOT'], [2.0 / SLOW, '01 / MANIFESTO'], [4.0 / SLOW, '02 / DONATELLO — SECURITY'], [8.0 / SLOW, '03 / HAUUM — WEB'],
-  [9.85 / SLOW, '04 / CHỢ VỈA HÈ — WEB'], [12.0 / SLOW, '05 / CAFÉ BÔNG — WEB'], [G0, '06 / GIDEON — CASE STUDY'],
+  [9.85 / SLOW, '04 / CHỢ VỈA HÈ — WEB'], [12.0 / SLOW, '05 / CAFÉ BÔNG — WEB'], [G0, '06 / GIDEON — UN BOT, UN ADDON, UNE GUILDE'],
   [G1 + 0.45 / SLOW, '07 / PLANS & AMBIANCES — PWA'], [G1 + 1.4 / SLOW, '08 / SELECTED WORK'],
 ]
 function renderHud(t) {
@@ -1251,7 +1154,7 @@ function renderFrame(T) {
 
 // ───────────────────────── boot ─────────────────────────
 window.__ready = (async () => {
-  const faces = ['700 100px "Space Grotesk"', '300 100px "Space Grotesk"', '500 20px "JetBrains Mono"', '400 20px Inter', '600 20px Inter',
+  const faces = ['700 100px "Barlow Condensed"', '400 30px "Fira Sans"', '500 30px "Fira Sans"', '700 100px "Space Grotesk"', '300 100px "Space Grotesk"', '500 20px "JetBrains Mono"', '400 20px Inter', '600 20px Inter',
     '500 100px Fraunces', 'italic 500 100px Fraunces', '600 100px Lora', '600 40px "Dancing Script"']
   await Promise.all(faces.map(f => document.fonts.load(f, 'Chợ Vỉa Hè Bông ABC 0123')))
   await document.fonts.ready

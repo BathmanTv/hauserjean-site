@@ -2,10 +2,11 @@
 
 72 BPM in F minor (one beat = 0.833 s, one bar = 3.33 s). The v1 cut ran at 120 BPM and
 was watched at 0.6×, so every v1 event time `t` maps to master time M(t): ×1/0.6 before
-the GIDEON case study, shifted after it. The case study itself is scored directly in
+the GIDEON section, shifted after it. The GIDEON section (the 30 s cut of its production
+brief: a low electronic bed, one short impact per scene change) is scored directly in
 master seconds on the same grid. Event times mirror reel.js.
 
-    python3 audio.py            # → out/soundtrack.wav (48 kHz, 24-bit stereo, 49.17 s)
+    python3 audio.py            # → out/soundtrack.wav (48 kHz, 24-bit stereo, 62.5 s)
 
 Needs numpy + scipy.
 """
@@ -18,7 +19,8 @@ from scipy import signal
 SR = 48000
 SLOW = 0.6
 BEAT = 60 / 72
-G0, G1 = 27 * BEAT, 47 * BEAT          # GIDEON case study (master seconds)
+GA, GB = 27, 63                        # GIDEON section, in beats (the brief's 30 s cut)
+G0, G1 = GA * BEAT, GB * BEAT
 DUR = G1 + 6 / SLOW
 N = int(round(SR * DUR))
 rng = np.random.default_rng(7)
@@ -235,12 +237,14 @@ def stab(t0, notes, gain=0.22, d=0.32, bright=4000):
 
 
 # ─────────────────────────── music (master beats) ───────────────────────────
-# bar start (beat) → chord, F minor i – VI – III – VII; the café bar is 3 beats long
+# bar start (beat) → chord, F minor. The café bar is 3 beats long; the GIDEON section (beats
+# GA → GB) moves one chord every two bars under a low electronic bed, as the brief asks.
 BARS = [(4, 'Fm'), (8, 'Db'), (12, 'Ab'), (16, 'Eb'), (20, 'Fm'), (24, 'Db'),
-        (27, 'Fm'), (31, 'Db'), (35, 'Ab'), (39, 'Eb'), (43, 'Db'),
-        (47, 'Ab'), (51, 'Eb'), (53, 'C7'), (55, 'end')]
+        (27, 'Fm'), (31, 'Fm'), (35, 'Db'), (39, 'Db'), (43, 'Ab'), (47, 'Ab'), (51, 'Eb'), (55, 'Fm'), (59, 'Fm'),
+        (GB, 'Ab'), (GB + 4, 'Eb'), (GB + 6, 'C7'), (GB + 8, 'end')]
 CHORD = {'Fm': [53, 56, 60, 63], 'Db': [49, 53, 56, 60], 'Ab': [56, 60, 63, 67], 'Eb': [51, 55, 58, 62], 'C7': [48, 52, 55, 58]}
 ROOT = {'Fm': 41, 'Db': 37, 'Ab': 44, 'Eb': 39, 'C7': 36}
+S1, S4, S6 = b(27), b(35), b(55)         # GIDEON scenes 1, 4 and 6 (master seconds)
 
 
 def chord_at(n):
@@ -252,6 +256,10 @@ def chord_at(n):
     return name
 
 
+def in_gideon(n):
+    return GA <= n < GB
+
+
 music = np.zeros((2, N))
 
 
@@ -259,41 +267,48 @@ def madd(buf, t0, gain, pan=0.0):
     add(buf, t0, gain, pan, bus=music)
 
 
-IMPACT_BEATS = {4, 8, 16, 27}            # downbeats carried by an impact instead of a kick
+IMPACT_BEATS = {4, 8, 16, GA, 35, 55}      # downbeats carried by an impact instead of a kick
 kick_beats = []
-for n in range(4, 54):
+for n in range(4, GB + 7):
     if n in IMPACT_BEATS:
         continue
     if 24 <= n < 27 and n not in (24, 26):   # Café Bông: half-time
         continue
-    if 30 <= n < 33 and n not in (30, 32):   # GIDEON 02 CONSTRAINT: half-time tension
+    if in_gideon(n):                         # GIDEON: only scene 4 keeps a soft half-time pulse
+        if 35 <= n < 55 and (n - 35) % 4 == 2:
+            kick_beats.append(n)
+            add(kick(), b(n), 0.5)
         continue
     kick_beats.append(n)
     add(kick(), b(n), 0.8)
 for n in kick_beats + sorted(IMPACT_BEATS):
     i = int(b(n) * SR)
     tail = np.arange(N - i) / SR
-    duck[i:] = np.minimum(duck[i:], 1 - 0.55 * np.exp(-tail / 0.16))
+    duck[i:] = np.minimum(duck[i:], 1 - (0.3 if in_gideon(n) else 0.55) * np.exp(-tail / 0.16))
 
-for start, name in BARS[:-2]:                # claps on 2 and 4
-    if name == 'end' or start == 24:
+for start, name in BARS[:-2]:                # claps on 2 and 4 (none in the GIDEON bed)
+    if name == 'end' or start == 24 or in_gideon(start):
         continue
     for off in (1, 3):
         n = start + off
-        if n < 54 and not (30 <= n < 33):
+        if n < GB + 7:
             add(clap(), b(n), 0.35, 0.05, send=0.25)
-for k in range(int((53 - 8) * 4)):          # 16th hats
+for k in range(int((GB + 6 - 8) * 4)):      # 16th hats; light 8ths only in GIDEON scene 4
     n = 8 + k / 4
     if 23.2 < n < 24:
         continue
+    if in_gideon(n):
+        if 35 <= n < 55 and k % 2 == 1:
+            add(hat(), b(n), 0.035, 0.25)
+        continue
     accent = 1.0 if k % 2 else 0.55
     open_ = k % 4 == 2 and 16 <= n < 24
-    add(hat(open_=open_), b(n), 0.08 * accent * (0.6 if 30 <= n < 33 else 1), 0.25 if k % 2 else -0.2)
+    add(hat(open_=open_), b(n), 0.08 * accent, 0.25 if k % 2 else -0.2)
 
-# bass: off-beat 8ths on the root, sidechained
-for k in range(int((54 - 4) * 2)):
+# bass: off-beat 8ths on the root, sidechained — a held sub under the GIDEON bed
+for k in range(int((GB + 7 - 4) * 2)):
     n = 4 + k / 2
-    if k % 2 == 0:
+    if k % 2 == 0 or in_gideon(n):
         continue
     r = ROOT[chord_at(n)]
     d = 0.3
@@ -301,30 +316,35 @@ for k in range(int((54 - 4) * 2)):
     y = sweep(y, 'lowpass', lambda s: 180 + 1500 * np.exp(-s / 0.06))
     y *= env(d, 0.003, 0.12)
     madd(y, b(n), 0.42 if n >= 8 else 0.25)
+for start in range(GA, GB, 4):
+    d = b(start + 4) - b(start)
+    r = ROOT[chord_at(start)]
+    y = sine(midi(r - 12), d) + 0.35 * filt(saw(midi(r), d), 'lowpass', 220)
+    y *= np.minimum(1, tt(d) / 0.3) * np.minimum(1, (d - tt(d)) / 0.3)
+    madd(y, b(start), 0.22)
 
-# pads, one chord per bar
+# pads, one chord per bar (a warmer, slower bed through GIDEON)
 for idx, (start, name) in enumerate(BARS[:-1]):
     if name == 'end':
         continue
     end = BARS[idx + 1][0]
     d = b(end) - b(start)
     y = sum(saw(midi(nn), d, dt) for nn in CHORD[name] for dt in (-0.007, 0.0, 0.007))
-    cut = 900 if name == 'Db' and start == 24 else 1800
+    cut = 900 if (name == 'Db' and start == 24) else (1100 if in_gideon(start) else 1800)
     y = sweep(y, 'lowpass', lambda s: cut * (0.6 + 0.4 * np.sin(np.pi * s / d)))
     y = filt(y, 'highpass', 160)
     y *= np.minimum(1, tt(d) / 0.1) * np.minimum(1, (d - tt(d)) / 0.06)
-    madd(np.vstack([y, np.roll(y, 311)]), b(start), 0.05)
+    madd(np.vstack([y, np.roll(y, 311)]), b(start), 0.075 if in_gideon(start) else 0.05)
 
-# plucked arps: HAUUM (16–20), Chợ Vỉa Hè pentatonic (20–24), GIDEON architect (33–37) and
-# repeat (43–47), the build into the wall (50–53)
+# plucked arps: HAUUM (16–20), Chợ Vỉa Hè pentatonic (20–24), the build into the wall
 PENTA = [65, 68, 70, 72, 75, 77, 80]
-for lo, hi in ((16, 24), (33, 37), (43, 47), (50, 53)):
+for lo, hi in ((16, 24), (GB + 3, GB + 6)):
     for k in range(int((hi - lo) * 4)):
         n = lo + k / 4
         notes = CHORD[chord_at(n)]
         if 20 <= n < 24:
             note, g = PENTA[(k * 3) % len(PENTA)], 0.13
-        elif n >= 50:
+        elif n >= GB:
             note, g = notes[k % 4] + 12 + (12 if k >= 6 else 0), 0.08 + 0.05 * k / 12
         else:
             note, g = notes[k % 4] + 12, 0.1
@@ -337,6 +357,8 @@ for tc, notes in [(12.0, [49, 56, 60, 65]), (12.75, [49, 56, 60, 63]), (13.0, [4
 music[:, :] *= duck
 w0 = int(M(11.95) * SR)
 music[:, w0:w0 + int(0.08 * SR)] *= np.linspace(1, 0.4, int(0.08 * SR))
+f0, f1 = int((b(GB) - 0.6) * SR), int((b(GB) + 0.5) * SR)      # the "fondu au noir" dips the bed
+music[:, f0:f1] *= np.concatenate([np.linspace(1, 0.25, int(0.6 * SR)), np.linspace(0.25, 1, f1 - f0 - int(0.6 * SR))])
 add(music, 0.0, 1.0, send=0.15)
 
 # ─────────────────────────── sound design ───────────────────────────
@@ -447,81 +469,68 @@ drop = sine(420 * np.exp(td / 0.035), 0.12) * env(0.12, 0.0005, 0.03)
 add(drop, M(13.31), 0.4, send=0.6)
 add(filt(noise(0.3), 'bandpass', [1500, 6000]) * env(0.3, 0.001, 0.05), M(13.32), 0.12, send=0.5)
 
-# 06 GIDEON — the case study (master seconds)
-CH = [b(n) for n in (27, 30, 33, 37, 40, 43, 47)]
-impact(G0, gain=0.8)
-shimmer = sum(sine(midi(nn), 1.6) * np.exp(-tt(1.6) / 0.6) for nn in (89, 96, 101)) * np.minimum(1, tt(1.6) / 0.1)
-add(np.vstack([shimmer, np.roll(shimmer, 700)]), G0 + 0.02, 0.05, send=0.7)
-for c in CH[1:6]:                             # chapter turns: a whoosh into a soft hit
-    whoosh(c - 0.32, 0.36, 2500, 500, 0.18, 0.4, -0.4, 0.85)
-    add(sub_drop(0.6, 70, 45), c, 0.18)
-    tick(c, 0.12, 2500)
-# 01 DISCOVER — rows slide in, two pairs survive, the third wipes
-for r in range(3):
-    t0 = b(27.85) + r * 0.3
-    whoosh(t0 - 0.05, 0.28, 900, 3000, 0.14, 0.8, 0.2, 0.5)
-    if r < 2:
-        for j, nn in enumerate((84, 91)):
-            bell(t0 + 0.32 + j * 0.06, nn, 0.08, 1.0, pan=0.5)
-    else:
-        bz = sum(saw(f, 0.32) for f in (110, 116.5)) * env(0.32, 0.003, 0.12)
-        add(filt(bz, 'lowpass', 1800), t0 + 0.32, 0.12, 0.5)
-# 02 CONSTRAINT — the Lua error, three strikes, the way out
-gd = 0.3
-g = noise(gd)
-g = np.round(g * 2) / 2 * (rng.random(len(g)) > 0.4)
-g = filt(g, 'bandpass', [500, 7000]) * env(gd, 0.001, 0.12)
-add(g, CH[1] + 0.66, 0.2, 0.4, send=0.15)
-err = sum(saw(f, 0.4) for f in (98, 103.8)) * env(0.4, 0.002, 0.18)
-add(filt(err, 'lowpass', 1200), CH[1] + 0.66, 0.14, 0.4)
-for r in range(3):
-    t0 = b(30.75) + r * 0.32
-    tick(t0, 0.06, 3000, -0.4)
-    sk = sweep(noise(0.22), 'bandpass', lambda s: [1500 + 6000 * s / 0.22, 2500 + 9000 * s / 0.22]) * env(0.22, 0.01, 0.08)
-    add(sk, t0 + 0.26, 0.1, -0.3)
-    pop(t0 + 0.4, 360 - r * 30, 0.14, 0.3)
-for j, nn in enumerate((75, 80)):
-    bell(b(32.05) + j * 0.1, nn, 0.1, 1.4, pan=-0.2 + 0.4 * j)
-# 03 ARCHITECT — nodes pop, edges draw, the pipeline runs
-for i, ts in enumerate((27.92, 28.25, 28.55, 28.95, 29.22, 29.5)):
-    pop(ts, 480 + i * 70, 0.18, pan=-0.6 + i * 0.24)
-for ts in (28.05, 28.4, 28.72, 29.1, 29.36):
-    zap = sine(2400 * np.exp(-tt(0.12) / 0.04) + 300, 0.12) * env(0.12, 0.001, 0.05)
-    add(zap, ts, 0.06, pan=0.2)
-bell(29.75, 84, 0.08, 1.2)
-# 04 BUILD — typing, the pairs print, the checks go green
-for k in range(24):
-    tick(CH[3] + 0.3 + k * 0.021 + rng.random() * 0.006, 0.05 + 0.03 * rng.random(), 3500 + rng.random() * 1500, -0.3)
-for k in range(10):
-    tick(CH[3] + 0.45 + k * 0.022, 0.04, 4000, 0.3)
-for i in range(10):
-    tick(CH[3] + 0.85 + i * 0.045, 0.05, 2200 + 60 * i, -0.4)
-for i in range(4):
-    tick(CH[3] + 0.75 + i * 0.18, 0.1, 2800, 0.4)
-for k in range(18):
-    tick(CH[3] + 1.29 + 0.55 * (k / 18) ** 1.5, 0.06, 5000, 0.4)
-for j, nn in enumerate((77, 81, 84, 89)):
-    bell(CH[3] + 1.85 + j * 0.05, nn, 0.08, 1.0, pan=0.3)
-# 05 SHIP — the post lands, the player clicks, one word
-whoosh(33.4, 0.4, 600, 3000, 0.16, -0.6, 0.0)
-for j, nn in enumerate((88, 93)):                   # message notification
-    bell(33.8 + j * 0.09, nn, 0.1, 0.8, pan=-0.3)
-whoosh(33.65, 0.4, 700, 3200, 0.14, 0.6, 0.2)
+# 06 GIDEON — the 30 s cut of the brief: scenes 1, 4, 6 (master seconds)
+# scene 1 — the fog of logs, the pull counter climbing
+impact(S1, gain=0.55)
 for i in range(3):
-    tick(33.75 + i * 0.07, 0.07, 2600, 0.5)
-whoosh(34.1, 0.4, 1200, 2600, 0.08, 0.9, 0.4, 0.6)
-tick(34.45, 0.08, 4500, 0.4)
-tick(34.55, 0.3, 1600, 0.4)
-tick(34.62, 0.18, 2400, 0.4)
-for j, nn in enumerate((84, 88, 91)):
-    bell(34.68 + j * 0.04, nn, 0.1, 1.2, pan=0.4)
-tick(34.76, 0.08, 3000, 0.4)
-# 06 REPEAT — four bots, the loop
+    tick(S1 + 0.2 + i * 0.35, 0.09, 4200, -0.3)
+for i in range(70):
+    tick(S1 + 1.4 + i * 0.05 + rng.random() * 0.02, 0.02 + 0.03 * rng.random(), 3000 + rng.random() * 4000, rng.random() * 1.6 - 0.8)
+fd = 3.6
+fog = sweep(noise(fd), 'bandpass', lambda s: [300 + 900 * s / fd, 900 + 3000 * s / fd]) * (tt(fd) / fd) ** 2
+add(np.vstack([fog, np.roll(fog, 331)]), S1 + 1.6, 0.05, send=0.4)
+prev = 1
+for k in range(1, 400):                      # one soft tick per pull (counter eased over 3.6 s)
+    tk = S1 + 1.0 + 3.6 * k / 400
+    x = k / 400
+    v = 1 + int(46 * (4 * x ** 3 if x < 0.5 else 1 - (-2 * x + 2) ** 3 / 2))
+    if v != prev:
+        tick(tk, 0.05, 1800 + 30 * v, 0.1)
+        prev = v
+rd = 0.75                                    # the fog collapses (reverse swell)…
+rev = crash(rd)[::-1] * np.linspace(0, 1, int(rd * SR)) ** 2
+add(np.vstack([rev, np.roll(rev, 90)]), S4 - rd, 0.3)
+# scene 4 — …and bursts in cyan: the addon
+impact(S4, gain=0.75)
+whoosh(S4 - 0.05, 0.5, 600, 7000, 0.25, peak=0.15)
 for i in range(4):
-    pop(CH[5] + 0.55 + i * 0.12, 520 + i * 90, 0.15, pan=-0.6 + i * 0.4)
-for i in range(4):
-    tick(CH[5] + 1.55 + i * 0.3, 0.06, 4200, pan=-0.6 + i * 0.4)
-whoosh(M(14.38), D(0.34), 300, 3000, 0.3)            # blueprint circle opens over it
+    pop(S4 + 0.5 + i * 0.12, 420 + i * 60, 0.14, pan=-0.5 + i * 0.33)
+tick(S4 + 2.0, 0.08, 3500, 0.6)
+clac = filt(noise(0.05), 'bandpass', [1800, 6000]) * env(0.05, 0.0003, 0.006)
+clac += sine(210 * np.exp(-tt(0.05) / 0.02), 0.05) * env(0.05, 0.0005, 0.012) * 0.8
+add(clac, S4 + 2.6, 0.55, 0.6, send=0.2)                   # the panel opens by itself: "clac"
+tick(S4 + 4.4, 0.08, 4500, 0.6)
+tick(S4 + 4.55, 0.3, 1600, 0.6)
+tick(S4 + 4.62, 0.15, 2400, 0.6)
+for j, nn in enumerate((80, 84)):
+    bell(S4 + 5.05 + j * 0.08, nn, 0.09, 1.4, pan=0.5)
+for i in range(3):
+    tick(S4 + 5.8 + i * 0.8, 0.06, 3200, 0.5)
+whoosh(S4 + 7.0, 0.9, 1200, 2600, 0.06, 0.6, -0.4, 0.6)
+tick(S4 + 8.05, 0.25, 1600, -0.4)
+for k in range(4):                           # the ping on the anchor, echoing
+    tp = S4 + 8.2 + k * 1.11
+    pg = (sine(1760, 0.6) + 0.4 * sine(2637, 0.6)) * env(0.6, 0.001, 0.18)
+    add(pg, tp, 0.1 * (0.85 ** k), -0.4, send=0.6)
+for k in range(10):                          # the chaser runs to the ping
+    th = S4 + 9.25 + k * 0.2
+    add(filt(noise(0.06), 'lowpass', 700) * env(0.06, 0.001, 0.02), th, 0.12, 0.2 - k * 0.06)
+whoosh(S4 + 9.6, 1.8, 400, 1400, 0.07, 0.4, 0.0, 0.5)
+for ts, pn in ((S4 + 11.25, -0.4), (S4 + 11.5, 0.2)):   # the pairs balance
+    for j, nn in enumerate((84, 88, 91)):
+        bell(ts + j * 0.05, nn, 0.07, 1.2, pan=pn)
+sh = sum(sine(midi(nn), 2.4) * np.exp(-tt(2.4) / 0.9) for nn in (77, 84, 89, 96)) * np.minimum(1, tt(2.4) / 0.05)
+add(np.vstack([sh, np.roll(sh, 500)]), S4 + 12.2, 0.06, send=0.7)   # the group gets through
+add(sub_drop(1.0, 60, 42), S4 + 12.2, 0.25)
+# scene 6 — the final word
+impact(S6, gain=0.85)
+for j, nn in enumerate((77, 81, 84, 89, 93)):
+    bell(S6 + 0.05 + j * 0.04, nn, 0.06, 2.2, pan=-0.4 + j * 0.2)
+for i in range(6):
+    tick(S6 + 0.12 + i * 0.05, 0.05, 2400 + 150 * i, -0.5 + i * 0.2)
+for i in range(3):
+    pop(S6 + 0.9 + i * 0.4, 700 + i * 80, 0.07)
+whoosh(M(14.38), D(0.34), 300, 3000, 0.3)            # the blueprint circle opens after the fade
 
 # 07 Plans & Ambiances
 pd = D(0.46)
